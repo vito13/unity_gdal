@@ -61,18 +61,13 @@ public class GisModel{
 
     public void GetEnvelpoe(ref Rect rc)
     {
+        System.Diagnostics.Debug.Assert(layer != null);
         Envelope env = new Envelope();
         int r = layer.GetExtent(env, 1);
         rc.xMin = (float)env.MinX;
         rc.yMin = (float)env.MinY;
         rc.xMax = (float)env.MaxX;
         rc.yMax = (float)env.MaxY;
-
-//         List<float> result = new List<float>();
-//         result.Add((float)env.MinX);
-//         result.Add((float)env.MinY);
-//         result.Add((float)env.MaxX);
-//         result.Add((float)env.MaxY);
         env.Dispose();
     }
 }

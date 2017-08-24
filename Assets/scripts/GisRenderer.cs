@@ -8,9 +8,9 @@ public class GisRenderer{
     FastLineRenderer lineRenderer = null;
     FastLineRendererProperties props = null;
     public float Radius = 0.02f;
-    GisParams gp = null;
+    GisViewer viewer = null;
 
-    public void Init(FastLineRenderer parent, GisParams par)
+    public void Init(FastLineRenderer parent, GisViewer v)
     {
         System.Diagnostics.Debug.Assert(parent != null);
         lineRenderer = FastLineRenderer.CreateWithParent(null, parent);
@@ -18,7 +18,7 @@ public class GisRenderer{
         lineRenderer.SetCapacity(FastLineRenderer.MaxLinesPerMesh * FastLineRenderer.VerticesPerLine);
         props = new FastLineRendererProperties();
         props.Radius = Radius;
-        gp = par;
+        viewer = v;
     }
 
     public void DrawGeometry(string json)
@@ -80,7 +80,7 @@ public class GisRenderer{
         List<Vector3> result = new List<Vector3>();
         for (int i = 0; i < lst.Count; i++)
         {
-            var pt = gp.MapToView(lst[i]);
+            var pt = viewer.MapToView(lst[i]);
             result.Add(pt);
         }
         return result;
