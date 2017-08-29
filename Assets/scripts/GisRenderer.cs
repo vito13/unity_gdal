@@ -2,47 +2,65 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DigitalRuby.FastLineRenderer;
-using Newtonsoft.Json;
+using OSGeo.OGR;
 
-public class GisRenderer{
+public class GisRenderer
+{
     FastLineRenderer lineRenderer = null;
     FastLineRendererProperties props = null;
-    public float Radius = 0.02f;
-    GisViewer viewer = null;
 
-    public void Init(FastLineRenderer parent, GisViewer v)
+    public void Init(FastLineRenderer parent, float radius)
     {
         System.Diagnostics.Debug.Assert(parent != null);
         lineRenderer = FastLineRenderer.CreateWithParent(null, parent);
         lineRenderer.Material.EnableKeyword("DISABLE_CAPS");
         lineRenderer.SetCapacity(FastLineRenderer.MaxLinesPerMesh * FastLineRenderer.VerticesPerLine);
         props = new FastLineRendererProperties();
-        props.Radius = Radius;
-        viewer = v;
+        props.Radius = radius;
     }
 
-    public void DrawGeometry(string json)
+    public void DrawGeometry(Geometry geo)
     {
-        var definition = new
+        System.Diagnostics.Debug.Assert(geo != null);
+        wkbGeometryType t = Ogr.GT_Flatten(geo.GetGeometryType());
+        switch (t)
         {
-            type = "",
-            coordinates = new List<float[]>()
-        };
-        var obj = JsonConvert.DeserializeAnonymousType(json, definition);
-        var pts = Array2Vector3(obj.coordinates);
-        var lst = TransformMyPoint(pts);
-
-        if (lst.Count >= 2)
-        {
-            for (int m = 0; m < lst.Count - 1; m++)
-            {
-                props.Start = lst[m];
-                lineRenderer.AppendLine(props);
-            }
-            props.Start = lst[lst.Count - 1];
-            lineRenderer.EndLine(props);
+            case wkbGeometryType.wkbUnknown:
+                break;
+            case wkbGeometryType.wkbPoint:
+                break;
+            case wkbGeometryType.wkbPolygon:
+                {
+                    Geometry linestring = geo.GetGeometryRef(0);
+                    if (Ogr.GT_Flatten(linestring.GetGeometryType()) == wkbGeometryType.wkbLineString)
+                    {
+                        DrawGeometry(linestring);
+                    }
+                }
+                break;
+            case wkbGeometryType.wkbLineString:
+                {
+                    int count = geo.GetPointCount();
+                    if (count >= 2)
+                    {
+                        double[] pt = new double[2];
+                        for (int i = 0; i < count - 1; i++)
+                        {
+                            geo.GetPoint(i, pt);
+                            props.Start = new Vector2((float)pt[0], (float)pt[1]);
+                            lineRenderer.AppendLine(props);
+                        }
+                        geo.GetPoint(count - 1, pt);
+                        props.Start = new Vector2((float)pt[0], (float)pt[1]);
+                        lineRenderer.EndLine(props);
+                    }
+                }
+                break;
+            default:
+                break;
         }
     }
+
 
     public void Clear()
     {
@@ -51,7 +69,7 @@ public class GisRenderer{
 
     public void BeginDraw()
     {
-        
+
     }
 
     public void EndDraw()
@@ -59,30 +77,5 @@ public class GisRenderer{
         lineRenderer.Apply();
     }
 
-    static List<Vector3> Array2Vector3(List<float[]> lst)
-    {
-        List<Vector3> result = new List<Vector3>();
-        for (int i = 0; i < lst.Count; i++)
-        {
-            Vector3 v = Vector3.zero;
-            for (int m = 0; m < lst[i].Length; m++)
-            {
-                v[m] = lst[i][m];
-            }
-            result.Add(v);
-        }
-
-        return result;
-    }
-
-    List<Vector3> TransformMyPoint(List<Vector3> lst)
-    {
-        List<Vector3> result = new List<Vector3>();
-        for (int i = 0; i < lst.Count; i++)
-        {
-            var pt = viewer.MapToView(lst[i]);
-            result.Add(pt);
-        }
-        return result;
-    }
+   
 }

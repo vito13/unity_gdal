@@ -3,13 +3,10 @@
 
 public class GisViewer
 {
-    float ratioZooming = 1.3f;
+    float ratioZooming = 1.2f;
+    private double resolution;
+    private Rect view, map;
 
-    private float resolution;
-    private Vector3 geo_center;
-    private Vector3 see_center;
-
-    
     public void Init()
     {
         Camera.main.orthographic = true;
@@ -19,76 +16,99 @@ public class GisViewer
         Camera.main.orthographicSize = Screen.height / 2;
     }
 
-    public void Zooming(Vector3 center, float val)
-    {
-        //         var sw = Input.GetAxis("Mouse ScrollWheel");
-        //         float dis = 0;
-        //        
-        //         if (sw < 0)
-        //         {
-        //             var bak = Camera.main.orthographicSize;
-        //             Camera.main.orthographicSize *= ratioZooming;
-        //             dis = Camera.main.orthographicSize - bak;
-        //         }
-        //         else if (sw > 0)
-        //         {
-        //             var bak = Camera.main.orthographicSize;
-        //             Camera.main.orthographicSize /= ratioZooming;
-        //             dis = Camera.main.orthographicSize - bak;
-        //         }
-        // 
-        //         if (dis != 0)
-        //         {
-        // 
-        //         }
-    }
-
-
-   
-
-
     public Vector3 GetSeeCenter()
     {
-        return see_center;
+        return view.center;
     }
     public Vector3 GetGeoCenter()
     {
-        return geo_center;
+        return map.center;
     }
-    public float GetResolution()
+    public double GetResolution()
     {
         return resolution;
     }
-
-
-    public void ResetResolution(Rect map, Rect view)
+    public Rect GetCurrentMapRect()
     {
-        geo_center = map.center;
-        see_center = view.center;
-        float RoH = map.height / view.height;
-        float RoW = map.width / view.width;
+        return map;
+    }
+
+    public void ResetResolution(Rect m, Rect v)
+    {
+        view = v;
+        map = m;
+        double RoH = map.height / view.height;
+        double RoW = map.width / view.width;
         resolution = RoH > RoW ? RoH : RoW;
     }
 
-    public Vector3 ViewToMap(Vector3 pos)
+    public Vector2D ViewToMap(float x, float y)
     {
-        Vector3 result = Vector3.zero;
-        result.x = geo_center.x + (pos.x - see_center.x) * resolution;
-        result.y = geo_center.y + (pos.y - see_center.y) * resolution;
-        return result;
+        Vector2D r = new Vector2D();
+        r.x = map.center.x + (x - view.center.x) * resolution;
+        r.y = map.center.y + (y - view.center.y) * resolution;
+        return r;
     }
 
-    public Vector3 MapToView(Vector3 pos)
+    public Vector2D MapToView(double x, double y)
     {
-        Vector3 result = Vector3.zero;
-        result.x = see_center.x + ((pos.x - geo_center.x) / resolution + 0.5f);
-        result.y = see_center.y + ((pos.y - geo_center.y) / resolution + 0.5f);
+        Vector2D result = new Vector2D();
+        result.x = view.center.x + ((x - map.center.x) / resolution + 0.5f);
+        result.y = view.center.y + ((y - map.center.y) / resolution + 0.5f);
         return result;
     }
 
     public void Translate(Vector3 offset)
     {
-        Camera.main.transform.Translate(offset);
-        geo_center = ViewToMap(see_center + offset);
+        //         float rate = firstSize / Camera.main.orthographicSize;
+        //         offset /= rate;
+        // 
+        return;
+ //       Camera.main.transform.Translate(offset);
+//         geo_center = ViewToMap(see_center + offset);
+    }
+
+
+    public void Zooming(Vector3 scaleCenter, bool zoomin)
+    {
+        /*
+        var scaleCenterMap = ViewToMap(scaleCenter);
+        var cen2xmin = scaleCenterMap.x - map.xMin;
+        var cen2xmax = map.xMax - scaleCenterMap.x;
+
+        var cen2ymin = scaleCenterMap.y - map.yMin;
+        var cen2ymax = map.yMax - scaleCenterMap.y;
+
+        float size = 0;
+        if (zoomin)
+        {
+            map.xMin += cen2xmin / ratioZooming;
+            map.xMax -= cen2xmax / ratioZooming;
+
+            map.yMin += cen2ymin / ratioZooming;
+            map.yMax -= cen2ymax / ratioZooming;
+            size = Camera.main.orthographicSize / ratioZooming;
+        }
+        else
+        {
+            map.xMin -= cen2xmin * ratioZooming;
+            map.xMax += cen2xmax * ratioZooming;
+
+            map.yMin -= cen2ymin * ratioZooming;
+            map.yMax += cen2ymax * ratioZooming;
+            size = Camera.main.orthographicSize * ratioZooming;
+        }
+
+        if (size != 0)
+        {
+            Camera.main.orthographicSize = size;
+            ResetResolution(map, view);
+        }
+       
+
+        var cx = scaleCenter.x - view.center.x;
+        var cy = scaleCenter.y - view.center.y;
+      //  Camera.main.transform.Translate(new Vector3(cx / ratioZooming, cy / ratioZooming, 0));
+      */
     }
 }

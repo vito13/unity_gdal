@@ -6,6 +6,10 @@ using UnityEngine;
 public class GisModel{
     DataSource ds = null;
     Layer layer = null;
+    GisSpatialQuery spatialquery = null;
+    Enyim.Collections.Envelope mapenv = null; // 所有geo合并的env
+    Enyim.Collections.Envelope currentenv = null; // 当前view呈现的map范围
+
 
     public void Open(string fname)
     {
@@ -14,60 +18,51 @@ public class GisModel{
         System.Diagnostics.Debug.Assert(ds.GetLayerCount() > 0);
         layer = ds.GetLayerByIndex(0);
         System.Diagnostics.Debug.Assert(layer != null);
-        ResetFeatureIterator();
+        
+
+        spatialquery = new GisSpatialQuery();
+        spatialquery.Clear();
+        ReadFeature2Tree();
+        currentenv = new Enyim.Collections.Envelope();
     }
 
-    public void ResetFeatureIterator()
+    public IEnumerable<NoteData> SpatialQuery(Enyim.Collections.Envelope env)
     {
+        var r = new List<NoteData>();
+        spatialquery.Find(env, true, ref r);
+        return r;
+    }
+
+
+    void ReadFeature2Tree()
+    {
+        Envelope env = new Envelope();
+        layer.GetExtent(env, 1);
+        mapenv = new Enyim.Collections.Envelope(env.MinX, env.MinY, env.MaxX, env.MaxY);
+        env.Dispose();
+
         layer.ResetReading();
-    }
-
-    public string GetNextFeatureGeometryJson()
-    {
-        string result = "";
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
-            Geometry geom = feat.GetGeometryRef();
-            if (geom != null)
-            {
-                wkbGeometryType t = Ogr.GT_Flatten(geom.GetGeometryType());
-                switch (t)
-                {
-                    case wkbGeometryType.wkbUnknown:
-                        break;
-                    case wkbGeometryType.wkbPoint:
-                        break;
-                    case wkbGeometryType.wkbLineString:
-                        {
-                            string json = geom.ExportToJson(null);
-                            System.Diagnostics.Debug.Assert(json.Length > 0);
-                            result = json;
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                
-            }
-            feat.Dispose();
-            if (result.Length > 0)
-            {
-                break;
-            }
+            spatialquery.Insert(feat);
         }
-        return result;
     }
 
-    public void GetEnvelpoe(ref Rect rc)
+    public Enyim.Collections.Envelope GetEnvelpoe()
     {
-        System.Diagnostics.Debug.Assert(layer != null);
-        Envelope env = new Envelope();
-        int r = layer.GetExtent(env, 1);
-        rc.xMin = (float)env.MinX;
-        rc.yMin = (float)env.MinY;
-        rc.xMax = (float)env.MaxX;
-        rc.yMax = (float)env.MaxY;
-        env.Dispose();
+        return mapenv;
+    }
+
+    public void SetSpatialFilterRect(Enyim.Collections.Envelope env)
+    {
+        currentenv = env;
+        List<NoteData> lst = new List<NoteData>();
+        spatialquery.Find(currentenv, false, ref lst);
+    }
+
+    public List<NoteData> GetQueryResult()
+    {
+        return spatialquery.GetReslut();
     }
 }

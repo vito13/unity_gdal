@@ -204,7 +204,7 @@ namespace Enyim.Collections
 			AdjutsParentBounds(envelope, insertPath, level);
 		}
 
-		private static int CombinedArea(Envelope what, Envelope with)
+		private static double CombinedArea(Envelope what, Envelope with)
 		{
 			var minX1 = Math.Max(what.X1, with.X1);
 			var minY1 = Math.Max(what.Y1, with.Y1);
@@ -214,7 +214,7 @@ namespace Enyim.Collections
 			return (maxX2 - minX1) * (maxY2 - minY1);
 		}
 
-		private static int IntersectionArea(Envelope what, Envelope with)
+		private static double IntersectionArea(Envelope what, Envelope with)
 		{
 			var minX = Math.Max(what.X1, with.X1);
 			var minY = Math.Max(what.Y1, with.Y1);
@@ -232,8 +232,8 @@ namespace Enyim.Collections
 
 				if (node.IsLeaf || path.Count - 1 == level) break;
 
-				var minArea = Int32.MaxValue;
-				var minEnlargement = Int32.MaxValue;
+				var minArea = Double.MaxValue;
+				var minEnlargement = Double.MaxValue;
 
 				RTreeNode<T> targetNode = null;
 
@@ -306,8 +306,8 @@ namespace Enyim.Collections
 
 		private int ChooseSplitIndex(RTreeNode<T> node, int minEntries, int totalCount)
 		{
-			var minOverlap = Int32.MaxValue;
-			var minArea = Int32.MaxValue;
+			var minOverlap = Double.MaxValue;
+			var minArea = Double.MaxValue;
 			int index = 0;
 
 			for (var i = minEntries; i <= totalCount - minEntries; i++)
@@ -476,7 +476,7 @@ namespace Enyim.Collections
 		private static int CompareNodesByMinX(RTreeNode<T> a, RTreeNode<T> b) { return a.Envelope.X1.CompareTo(b.Envelope.X1); }
 		private static int CompareNodesByMinY(RTreeNode<T> a, RTreeNode<T> b) { return a.Envelope.Y1.CompareTo(b.Envelope.Y1); }
 
-		private static int AllDistMargin(RTreeNode<T> node, int m, int M, Comparison<RTreeNode<T>> compare)
+		private static double AllDistMargin(RTreeNode<T> node, int m, int M, Comparison<RTreeNode<T>> compare)
 		{
 			node.Children.Sort(compare);
 

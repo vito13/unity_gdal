@@ -5,7 +5,9 @@ using UnityEngine.UI;
 public class usegis : MonoBehaviour
 {
     [SerializeField]
-    FastLineRenderer lineRenderer = null;
+    FastLineRenderer defaultRenderer = null;
+    [SerializeField]
+    FastLineRenderer selectionRenderer = null;
     [SerializeField]
     Text stateinfo;
 
@@ -15,8 +17,9 @@ public class usegis : MonoBehaviour
     void Awake()
     {
         gis = new GisWrapper();
-        gis.Init(lineRenderer);
-        gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
+        gis.Init(defaultRenderer, selectionRenderer);
+        //gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
+        gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
         gis.FullExtent();
         gis.Redraw();
     }
@@ -60,4 +63,8 @@ public class usegis : MonoBehaviour
         gis.FullExtent();
     }
    
+    public void Find(Vector2[] v)
+    {
+        var r = gis.GetFeatureInRange(v[0], v[1]);
+    }
 }

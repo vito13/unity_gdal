@@ -6,7 +6,7 @@ namespace Enyim.Collections
 	{
 		internal Envelope() { }
 
-		public Envelope(int x1, int y1, int x2, int y2)
+		public Envelope(double x1, double y1, double x2, double y2)
 		{
 			X1 = x1;
 			Y1 = y1;
@@ -14,13 +14,13 @@ namespace Enyim.Collections
 			Y2 = y2;
 		}
 
-		public int X1 { get; private set; } // 0
-		public int Y1 { get; private set; } // 1
-		public int X2 { get; private set; } // 2
-		public int Y2 { get; private set; } // 3
+		public double X1 { get; private set; } // 0
+		public double Y1 { get; private set; } // 1
+		public double X2 { get; private set; } // 2
+		public double Y2 { get; private set; } // 3
 
-		internal int Area { get { return (X2 - X1) * (Y2 - Y1); } }
-		internal int Margin { get { return (X2 - X1) + (Y2 - Y1); } }
+		internal double Area { get { return (X2 - X1) * (Y2 - Y1); } }
+		internal double Margin { get { return (X2 - X1) + (Y2 - Y1); } }
 
 		internal void Extend(Envelope by)
 		{
