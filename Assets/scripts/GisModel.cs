@@ -26,7 +26,7 @@ public class GisModel{
         currentenv = new Enyim.Collections.Envelope();
     }
 
-    public IEnumerable<NoteData> SpatialQuery(Enyim.Collections.Envelope env)
+    public List<NoteData> SpatialQuery(Enyim.Collections.Envelope env)
     {
         var r = new List<NoteData>();
         spatialquery.Find(env, true, ref r);
@@ -61,7 +61,7 @@ public class GisModel{
         spatialquery.Find(currentenv, false, ref lst);
     }
 
-    public List<NoteData> GetQueryResult()
+    public List<NoteData> GetCurrentViewing()
     {
         return spatialquery.GetReslut();
     }

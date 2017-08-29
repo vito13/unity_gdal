@@ -60,7 +60,7 @@ public class GisWrapper{
         fastrenderer.Clear();
         fastrenderer.BeginDraw();
 
-        var lst = model.GetQueryResult();
+        var lst = model.GetCurrentViewing();
         Geometry geo = null;
         for (int i = 0; i < lst.Count; i++)
         {
