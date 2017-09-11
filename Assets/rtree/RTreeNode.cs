@@ -6,7 +6,7 @@ namespace Enyim.Collections
 {
     public class RTreeNode<T>
 	{
-		private readonly Lazy<List<RTreeNode<T>>> children;
+		private readonly System.Lazy<List<RTreeNode<T>>> children;
 
 		internal RTreeNode() : this(default(T), new Envelope()) { }
 

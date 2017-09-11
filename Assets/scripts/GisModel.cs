@@ -13,6 +13,7 @@ public class GisModel{
 
     public void Open(string fname)
     {
+        Clear();
         ds = Ogr.Open(fname, 0);
         System.Diagnostics.Debug.Assert(ds != null);
         System.Diagnostics.Debug.Assert(ds.GetLayerCount() > 0);
@@ -24,6 +25,11 @@ public class GisModel{
         spatialquery.Clear();
         ReadFeature2Tree();
         currentenv = new Enyim.Collections.Envelope();
+    }
+
+    public void Clear()
+    {
+
     }
 
     public List<NoteData> SpatialQuery(Enyim.Collections.Envelope env)

@@ -1,6 +1,9 @@
-﻿using DigitalRuby.FastLineRenderer;
+﻿using IronPython.Hosting;
+using Microsoft.Scripting.Hosting;
+using DigitalRuby.FastLineRenderer;
 using UnityEngine;
 using UnityEngine.UI;
+
 
 public class usegis : MonoBehaviour
 {
@@ -10,61 +13,125 @@ public class usegis : MonoBehaviour
     FastLineRenderer selectionRenderer = null;
     [SerializeField]
     Text stateinfo;
+    [SerializeField]
+    GameObject polygonParent;
+
 
     GisWrapper gis = null;
     Vector3 mouseDown = Vector3.zero;
+    float t = 0;
 
     void Awake()
     {
-        gis = new GisWrapper();
-        gis.Init(defaultRenderer, selectionRenderer);
-        //gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
-        gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
-        gis.FullExtent();
-        gis.Redraw();
+        testpy();
+        GisWrapper.polygonParent = polygonParent;
+        Load();
     }
+
 
     void Update()
     {
-        Offseting();
-        Zooming();
-        stateinfo.text = gis.GetStateInfo();
-    }
-
-    void Zooming()
-    {
-        var sw = Input.GetAxis("Mouse ScrollWheel");
-        if (sw != 0)
+        if (gis != null)
         {
-            gis.Zooming(Input.mousePosition, sw);
+            Transmit();
+            stateinfo.text = gis.GetStateInfo();
         }
+
     }
 
-    void Offseting()
+    public void SetHandTool()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISHand);
+    }
+    public void SetPointTool()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISPoint);
+    }
+    public void SetPolylineTool()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISPolyline);
+    }
+    public void SetPolygonTool()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISPolygon);
+    }
+
+
+    void Transmit()
     {
         if (Input.GetMouseButtonDown(0))
         {
-            mouseDown = Input.mousePosition;
+            gis.OnButtonDown();
         }
         else if (Input.GetMouseButton(0))
         {
-            var dis = mouseDown - Input.mousePosition;
-            gis.Translation(dis);
-            mouseDown = Input.mousePosition;
+            gis.OnButton();
         }
         else if (Input.GetMouseButtonUp(0))
         {
-            mouseDown = Vector3.zero;
+            gis.OnButtonUp();
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            gis.OnDblClk();
+        }
+        gis.OnMove();
+
+        var sw = Input.GetAxis("Mouse ScrollWheel");
+        if (sw != 0)
+        {
+            gis.OnWheel(sw > 0 ? true : false);
         }
     }
 
     public void FullExtend()
     {
-        gis.FullExtent();
+        if (gis != null)
+        {
+            gis.FullExtent();
+        }
     }
-   
+
     public void Find(Vector2[] v)
     {
-        var r = gis.GetFeatureInRange(v[0], v[1]);
+        if (gis != null)
+        {
+            var r = gis.GetFeatureInRange(v[0], v[1]);
+        }
+    }
+
+    public void Load()
+    {
+        Clear();
+        gis = new GisWrapper();
+        gis.Init(defaultRenderer, selectionRenderer);
+        gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
+        // gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
+        FullExtend();
+        gis.Redraw();
+    }
+
+    public void Clear()
+    {
+        if (gis != null)
+        {
+            gis.CleanCanvas();
+        }
+        gis = null;
+    }
+
+    void testpy()
+    {
+        var script = Resources.Load<TextAsset>("aaa").text; // resources内
+        var scriptEngine = IronPython.Hosting.Python.CreateEngine();
+        var scriptScope = scriptEngine.CreateScope();
+        var scriptSource = scriptEngine.CreateScriptSourceFromString(script);
+
+        scriptSource.Execute(scriptScope);
+
     }
 }
