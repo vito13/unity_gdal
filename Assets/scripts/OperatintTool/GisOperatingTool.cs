@@ -11,6 +11,18 @@ public enum OperatingToolType
     GISPoint,
     GISPolyline,
     GISPolygon,
+    GISBoxSelect,
+    GISPointSelect,
+    GISCircleSelect,
+    GISPolygonSelect,
+}
+
+public enum SpatialRelation_TYPE
+{
+    hhhwSRT_UNKNOWN = -1,
+    hhhwSRT_Within = 0, // 几何体在矩形内
+    hhhwSRT_Intersect, // 几何体与矩形有交叉
+    hhhwSRT_COUNT,
 }
 
 public interface IMouseAction
@@ -29,6 +41,17 @@ public class GisOperatingTool : IMouseAction
     protected OperatingToolType type;
     protected Vector2 originalPos;
     protected VectorLine line;
+    static protected GisOperatingToolSet host;
+
+    public static void SetHost(GisOperatingToolSet h)
+    {
+        host = h;
+    }
+
+    public void Send(string str, object par)
+    {
+        host.Send(str, par);
+    }
 
     public GisOperatingTool()
     {
@@ -69,7 +92,6 @@ public class GisOperatingTool : IMouseAction
 
     public virtual void Reset()
     {
-        
     }
 
     protected virtual void init()

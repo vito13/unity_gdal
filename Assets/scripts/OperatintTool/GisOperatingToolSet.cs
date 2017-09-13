@@ -6,16 +6,34 @@ public class GisOperatingToolSet {
     Dictionary<OperatingToolType, GisOperatingTool> mapTools = null;
     GisOperatingTool currentTool = null;
     GisViewer viewer = null;
+    static GisWrapper host;
+    public static SpatialRelation_TYPE sqtype;
+
+    public static void SetHost(GisWrapper h)
+    {
+        host = h;
+    }
+
+    public void Send(string str, object par)
+    {
+        host.Handle(str, par);
+    }
 
     public void Init(GisViewer v)
     {
         viewer = v;
+        GisOperatingTool.SetHost(this);
         mapTools = new Dictionary<OperatingToolType, GisOperatingTool>();
         mapTools.Add(OperatingToolType.GISHand, new GisHandTool(viewer));
         mapTools.Add(OperatingToolType.GISPolyline, new GisPolylineTool());
         mapTools.Add(OperatingToolType.GISPolygon, new GisPolygonTool());
         mapTools.Add(OperatingToolType.GISPoint, new GisPointTool());
+        mapTools.Add(OperatingToolType.GISBoxSelect, new GisBoxSelect());
+        mapTools.Add(OperatingToolType.GISPointSelect, new GisPointSelect());
+        mapTools.Add(OperatingToolType.GISCircleSelect, new GisCircleSelect());
+        mapTools.Add(OperatingToolType.GISPolygonSelect, new GisPolygonSelect());
         SetCurrentType(OperatingToolType.GISHand);
+        sqtype = SpatialRelation_TYPE.hhhwSRT_Intersect;
     }
 
     public GisOperatingTool GetCurrentTool()

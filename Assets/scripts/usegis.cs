@@ -3,7 +3,7 @@ using Microsoft.Scripting.Hosting;
 using DigitalRuby.FastLineRenderer;
 using UnityEngine;
 using UnityEngine.UI;
-
+using System.Collections.Generic;
 
 public class usegis : MonoBehaviour
 {
@@ -15,6 +15,8 @@ public class usegis : MonoBehaviour
     Text stateinfo;
     [SerializeField]
     GameObject polygonParent;
+    [SerializeField]
+    Toggle sqtype; // 用于监测当前空间查询的关系方式，对应SpatialRelation_TYPE枚举
 
 
     GisWrapper gis = null;
@@ -37,6 +39,11 @@ public class usegis : MonoBehaviour
             stateinfo.text = gis.GetStateInfo();
         }
 
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            gis.Redraw();
+
+        }
     }
 
     public void SetHandTool()
@@ -59,7 +66,43 @@ public class usegis : MonoBehaviour
         if (gis != null)
             gis.SetCurrentTool(OperatingToolType.GISPolygon);
     }
+    public void SetBoxSelect()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISBoxSelect);
+    }
+    public void SetPointSelect()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISPointSelect);
+    }
+    public void SetCircleSelect()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISCircleSelect);
+    }
+    public void SetPolygonSelect()
+    {
+        if (gis != null)
+            gis.SetCurrentTool(OperatingToolType.GISPolygonSelect);
+    }
 
+    public void SetSpatialRelation()
+    {
+        if (gis != null)
+        {
+            if (sqtype.isOn)
+            {
+                gis.SetSpatialRelationl(SpatialRelation_TYPE.hhhwSRT_Within);
+            }
+            else
+            {
+                gis.SetSpatialRelationl(SpatialRelation_TYPE.hhhwSRT_Intersect);
+            }
+            Debug.Log(GisOperatingToolSet.sqtype);
+        }
+        
+    }
 
     void Transmit()
     {
@@ -96,12 +139,14 @@ public class usegis : MonoBehaviour
         }
     }
 
-    public void Find(Vector2[] v)
+    public IEnumerable<long> GetSelection()
     {
+        IEnumerable<long> r = null;
         if (gis != null)
         {
-            var r = gis.GetFeatureInRange(v[0], v[1]);
+            r = gis.GetSelection();
         }
+        return r;
     }
 
     public void Load()
@@ -109,8 +154,8 @@ public class usegis : MonoBehaviour
         Clear();
         gis = new GisWrapper();
         gis.Init(defaultRenderer, selectionRenderer);
+       // gis.LoadFile("D:\\000testdata\\testshp11\\bou2_4p.shp");
         gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
-        // gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
         FullExtend();
         gis.Redraw();
     }

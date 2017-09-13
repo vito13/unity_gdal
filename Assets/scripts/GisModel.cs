@@ -32,10 +32,11 @@ public class GisModel{
 
     }
 
-    public List<NoteData> SpatialQuery(Enyim.Collections.Envelope env)
+    public List<NoteData> SpatialQuery(CPPOGREnvelope env)
     {
         var r = new List<NoteData>();
-        spatialquery.Find(env, true, ref r);
+        Enyim.Collections.Envelope e = new Enyim.Collections.Envelope(env.MinX, env.MinY, env.MaxX, env.MaxY);
+        spatialquery.Find(e, true, ref r);
         return r;
     }
 

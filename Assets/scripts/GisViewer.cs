@@ -65,8 +65,20 @@ public class GisViewer
         Vector2D result = new Vector2D(
             vc.x + ((x - mc.x) / resolution),
             vc.y + ((y - mc.y) / resolution));
-        return result;
+
+        var r = ViewToCamera(result);
+        return r; // result;
     }
+
+    Vector2D ViewToCamera(Vector2D pt)
+    {
+        var envcam = utils.GetOrthographicCameraEnvelope();
+        var envview = utils.GetViewerEnvelope();
+        var x = pt.x / envview.GetWidth() * envcam.GetWidth() + envcam.MinX;
+        var y = pt.y / envview.GetHeight() * envcam.GetHeight() + envcam.MinY;
+        return new Vector2D(x, y);
+    }
+
     /// <summary>
     /// 平移view的视野中心，会改变map的env与摄像机的位置
     /// </summary>
@@ -84,8 +96,8 @@ public class GisViewer
          * 所以推测应该以全景做参照
          */
         Camera.main.transform.Translate(new Vector3(
-            (float)(offset.x * resolution / standardrate), 
-            (float)(offset.y * resolution / standardrate), 
+            (float)(offset.x * resolution / standardrate),
+            (float)(offset.y * resolution / standardrate),
             0));
     }
 

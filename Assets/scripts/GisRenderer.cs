@@ -95,6 +95,7 @@ public class GisRenderer
                     linearRing.GetPoint(i, pt);
                     vertices2D[i] = new Vector2((float)pt[0], (float)pt[1]);
                 }
+                /*
                 Triangulator tr = new Triangulator(vertices2D);
                 int[] indices = tr.Triangulate();
 
@@ -119,7 +120,7 @@ public class GisRenderer
                 filter.mesh = msh;
                 g.GetComponent<MeshRenderer>().material.color = Color.red;
                 g.transform.parent = GisWrapper.polygonParent.transform;
-
+                */
                 DrawLineString(linearRing);
             }
         }

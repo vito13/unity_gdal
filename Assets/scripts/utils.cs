@@ -8,6 +8,22 @@ using System;
 
 public class utils
 {
+    public static bool Intersects(Geometry host, Geometry other)
+    {
+        host.FlattenTo2D();
+        other.FlattenTo2D();
+        var r1 = host.Intersects(other);
+        return r1;
+    }
+
+    public static bool Within(Geometry host, Geometry other)
+    {
+        host.FlattenTo2D();
+        other.FlattenTo2D();
+        var r1 = other.Within(host);
+        return r1;
+    }
+
     public static Enyim.Collections.Envelope Rect2ECEnvlope(Rect rc)
     {
         return new Enyim.Collections.Envelope(rc.xMin, rc.yMin, rc.xMax, rc.yMax);
@@ -84,6 +100,28 @@ public class utils
         r.y = Camera.main.orthographicSize * 2;
         r.x = Camera.main.aspect * r.y;
         return r;
+    }
+
+    public static CPPOGREnvelope GetOrthographicCameraEnvelope()
+    {
+        var pos = Camera.main.transform.position;
+        var wh = GetCameraWH();
+        CPPOGREnvelope env = new CPPOGREnvelope();
+        env.MinX = pos.x - wh.x * 0.5f;
+        env.MaxX = env.MinX + wh.x;
+        env.MinY = pos.y - wh.y * 0.5f;
+        env.MaxY = env.MinY + wh.y;
+        return env;
+    }
+
+    public static CPPOGREnvelope GetViewerEnvelope()
+    {
+        CPPOGREnvelope env = new CPPOGREnvelope();
+        env.MinX = 0;
+        env.MaxX = Screen.width;
+        env.MinY = 0;
+        env.MaxY = Screen.height;
+        return env;
     }
 }
 
@@ -213,5 +251,15 @@ public class CPPOGREnvelope
     public override string ToString()
     {
         return string.Format("minx:{0:N4}, maxx:{1:N4}, miny:{2:N4}, maxy:{3:N4}", MinX, MaxX, MinY, MaxY);
+    }
+
+    public void ViewToMap(GisViewer v)
+    {
+        var min = v.ViewToMap(MinX, MinY);
+        var max = v.ViewToMap(MaxX, MaxY);
+        MinX = min.x;
+        MinY = min.y;
+        MaxX = max.x;
+        MaxY = max.y;
     }
 }

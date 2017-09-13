@@ -80,6 +80,7 @@ public class GisSelectionSet
     public void Redraw(GisViewer v)
     {
         lineRenderer.Reset();
+        props.Radius = 1.5f * (float)v.GetResolution();
         foreach (var item in lst)
         {
             var geo = item.fea.GetGeometryRef().Clone();
@@ -88,5 +89,15 @@ public class GisSelectionSet
             geo.Dispose();
         }
         lineRenderer.Apply();
+    }
+
+    public IEnumerable<long> GetSelection()
+    {
+        List<long> r = new List<long>();
+        for (int i = 0; i < lst.Count; i++)
+        {
+            r.Add(lst[i].fea.GetFID());
+        }
+        return r;
     }
 }

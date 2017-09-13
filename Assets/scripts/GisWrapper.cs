@@ -3,8 +3,10 @@ using OSGeo.OGR;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Reflection;
 
-public class GisWrapper : IMouseAction{
+public class GisWrapper : IMouseAction
+{
     GisViewer viewer = null;
     GisModel model = null;
     GisRenderer fastrenderer = null;
@@ -13,7 +15,9 @@ public class GisWrapper : IMouseAction{
     static public GameObject polygonParent;
 
 
-    public void Init (FastLineRenderer defaultRenderer, FastLineRenderer selectionRenderer) {
+
+    public void Init(FastLineRenderer defaultRenderer, FastLineRenderer selectionRenderer)
+    {
         Ogr.RegisterAll();
         model = new GisModel();
         viewer = new GisViewer();
@@ -23,10 +27,12 @@ public class GisWrapper : IMouseAction{
 
         ss = new GisSelectionSet();
         ss.Init(selectionRenderer, 0.2f);
+
+        GisOperatingToolSet.SetHost(this);
         optool = new GisOperatingToolSet();
         optool.Init(viewer);
     }
-	
+
 
     public void LoadFile(string fname)
     {
@@ -113,20 +119,103 @@ public class GisWrapper : IMouseAction{
         return result;
     }
 
-    public IEnumerable<int> GetFeatureInRange(Vector2 vmin, Vector2 vmax)
+    public IEnumerable<long> GetSelection()
     {
-        List<int> lst = new List<int>();
-        Vector2D ptmin = ViewToMap(vmin.x, vmin.y);
-        Vector2D ptmax = ViewToMap(vmax.x, vmax.y);
-        var r = model.SpatialQuery(new Enyim.Collections.Envelope(ptmin.x, ptmin.y, ptmax.x, ptmax.y));
+        return ss.GetSelection();
+    }
 
-        ss.Clear();
+    
+    void SurfaceSpatialQuery(List<Vector2D> lst, SpatialRelation_TYPE t)
+    {
+        Geometry poly = new Geometry(wkbGeometryType.wkbPolygon);
+        Geometry lr = new Geometry(wkbGeometryType.wkbLinearRing);
+        foreach (var item in lst)
+        {
+            lr.AddPoint_2D(item.x, item.y);
+        }
+        lr.CloseRings();
+        poly.AddGeometryDirectly(lr);
+
+        Envelope ogrenv = new Envelope();
+        poly.GetEnvelope(ogrenv);
+        CPPOGREnvelope env = new CPPOGREnvelope();
+        env.MinX = ogrenv.MinX;
+        env.MinY = ogrenv.MinY;
+        env.MaxX = ogrenv.MaxX;
+        env.MaxY = ogrenv.MaxY;
+        var r = model.SpatialQuery(env);
+        ogrenv.Dispose();
+
         foreach (var item in r)
         {
-            ss.Add(item);
+            var other = item.fea.GetGeometryRef();
+            bool r2 = false;
+            if (t == SpatialRelation_TYPE.hhhwSRT_Intersect)
+            {
+                r2 = utils.Intersects(poly, other);
+            }
+            else if (t == SpatialRelation_TYPE.hhhwSRT_Within)
+            {
+                r2 = utils.Within(poly, other);
+            }
+            if (r2)
+            {
+                ss.Add(item);
+            }
+        }
+        poly.Dispose();
+    }
+
+    void PointSpatialQuery(Vector2D pt)
+    {
+        CPPOGREnvelope env = new CPPOGREnvelope();
+        env.MinX = pt.x;
+        env.MinY = pt.y;
+        env.MaxX = pt.x;
+        env.MaxY = pt.y;
+        var r = model.SpatialQuery(env);
+
+        Geometry point = new Geometry(wkbGeometryType.wkbPoint);
+        point.SetPoint_2D(0, pt.x, pt.y);
+        foreach (var item in r)
+        {
+            var other = item.fea.GetGeometryRef();
+            bool r2 = utils.Within(other, point);
+            if (r2)
+            {
+                ss.Add(item);
+            }
+        }
+        point.Dispose();
+    }
+
+    void LineSpatialQuery(Vector2D pt1, Vector2D pt2)
+    {
+        Debug.Log("还未实现～～～");
+    }
+
+    public void SpatialQuery(Vector2[] arr)
+    {
+        ss.Clear();
+        List<Vector2D> lst = new List<Vector2D>();
+        for (int i = 0; i < arr.Length; i++)
+        {
+            var p1 = viewer.ViewToMap(arr[i].x, arr[i].y);
+            lst.Add(p1);
+        }
+        switch (lst.Count)
+        {
+            case 1:
+                PointSpatialQuery(lst[0]);
+                break;
+            case 2:
+                LineSpatialQuery(lst[0], lst[1]);
+                break;
+            default:
+                SurfaceSpatialQuery(lst, GisOperatingToolSet.sqtype);
+                break;
         }
         ss.Redraw(viewer);
-        return lst;
     }
 
     public void OnButtonDown()
@@ -162,5 +251,19 @@ public class GisWrapper : IMouseAction{
     public void SetCurrentTool(OperatingToolType t)
     {
         optool.SetCurrentType(t);
+    }
+
+    public void SetSpatialRelationl(SpatialRelation_TYPE t)
+    {
+        GisOperatingToolSet.sqtype = t;
+    }
+
+    public void Handle(string str, object par)
+    {
+        Type t = typeof(GisWrapper);
+        object[] params_obj = new object[1];
+        params_obj[0] = par;
+        var m = t.GetMethod(str);
+        var r = m.Invoke(this, params_obj);
     }
 }
