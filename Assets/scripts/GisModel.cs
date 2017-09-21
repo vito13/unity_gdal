@@ -14,7 +14,7 @@ public class GisModel{
     public void Open(string fname)
     {
         Clear();
-        ds = Ogr.Open(fname, 0);
+        ds = Ogr.Open(fname, 1);
         System.Diagnostics.Debug.Assert(ds != null);
         System.Diagnostics.Debug.Assert(ds.GetLayerCount() > 0);
         layer = ds.GetLayerByIndex(0);
@@ -68,8 +68,23 @@ public class GisModel{
         spatialquery.Find(currentenv, false, ref lst);
     }
 
-    public List<NoteData> GetCurrentViewing()
+    public List<NoteData> GetSpatialResult()
     {
         return spatialquery.GetReslut();
+    }
+
+    public long CreateFeature(Geometry geom)
+    {
+        Feature feature = new Feature(layer.GetLayerDefn());
+        if (feature.SetGeometry(geom) != 0)
+        {
+            return Ogr.OGRNullFID;
+        }
+        if (layer.CreateFeature(feature) != 0)
+        {
+            return Ogr.OGRNullFID;
+        }
+        long fid = feature.GetFID();
+        return fid;
     }
 }

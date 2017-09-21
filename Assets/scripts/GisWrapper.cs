@@ -68,7 +68,7 @@ public class GisWrapper : IMouseAction
         fastrenderer.Clear();
         fastrenderer.BeginDraw();
 
-        var lst = model.GetCurrentViewing();
+        var lst = model.GetSpatialResult();
         Geometry geo = null;
         for (int i = 0; i < lst.Count; i++)
         {
@@ -247,6 +247,20 @@ public class GisWrapper : IMouseAction
     {
         optool.OnDblClk();
     }
+    public void CreateModel()
+    {
+        var lst = model.GetSpatialResult();
+        for (int i = 0; i < lst.Count; i++)
+        {
+            if (lst[i].fea.GetFID() %5 != 1)
+            {
+                continue;
+                // break;
+            }
+         
+            ModelBuilder.CreateModel(viewer, polygonParent.transform, lst[i].fea);
+        }
+    }
 
     public void SetCurrentTool(OperatingToolType t)
     {
@@ -256,6 +270,50 @@ public class GisWrapper : IMouseAction
     public void SetSpatialRelationl(SpatialRelation_TYPE t)
     {
         GisOperatingToolSet.sqtype = t;
+    }
+
+    void CreateFeature_line(List<Vector2D> lst)
+    {
+        Geometry ls = new Geometry(wkbGeometryType.wkbLineString);
+        foreach (var item in lst)
+        {
+            ls.AddPoint_2D(item.x, item.y);
+        }
+        var fid = model.CreateFeature(ls);
+        Debug.Log(fid);
+        ls.Dispose();
+    }
+    void CreateFeature_surface(List<Vector2D> lst)
+    {
+
+    }
+    void CreateFeature_point(Vector2D pt)
+    {
+
+    }
+    public void CreateFeature(Vector2[] arr)
+    {
+        List<Vector2D> lst = new List<Vector2D>();
+        for (int i = 0; i < arr.Length; i++)
+        {
+            var p1 = viewer.ViewToMap(arr[i].x, arr[i].y);
+            lst.Add(p1);
+        }
+        switch (optool.GetCurrentType())
+        {
+            case OperatingToolType.GISPoint:
+                CreateFeature_point(lst[0]);
+                break;
+            case OperatingToolType.GISPolyline:
+                CreateFeature_line(lst);
+                break;
+            case OperatingToolType.GISPolygon:
+                CreateFeature_surface(lst);
+                break;
+            default:
+                break;
+        }
+        Redraw();
     }
 
     public void Handle(string str, object par)

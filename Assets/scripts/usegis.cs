@@ -101,7 +101,12 @@ public class usegis : MonoBehaviour
             }
             Debug.Log(GisOperatingToolSet.sqtype);
         }
-        
+    }
+
+    public void CreateModel()
+    {
+        if (gis != null)
+            gis.CreateModel();
     }
 
     void Transmit()
@@ -154,8 +159,8 @@ public class usegis : MonoBehaviour
         Clear();
         gis = new GisWrapper();
         gis.Init(defaultRenderer, selectionRenderer);
-       // gis.LoadFile("D:\\000testdata\\testshp11\\bou2_4p.shp");
-        gis.LoadFile("D:\\000testdata\\hgd\\line.shp");
+        // gis.LoadFile("D:\\000testdata\\testshp11\\bou2_4p.shp");
+        gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
         FullExtend();
         gis.Redraw();
     }

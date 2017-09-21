@@ -70,11 +70,11 @@ public class GisRenderer
             for (int i = 0; i < count - 1; i++)
             {
                 geo.GetPoint(i, pt);
-                props.Start = new Vector2((float)pt[0], (float)pt[1]);
+                props.Start = new Vector3((float)pt[0], 0, (float)pt[1]);
                 lineRenderer.AppendLine(props);
             }
             geo.GetPoint(count - 1, pt);
-            props.Start = new Vector2((float)pt[0], (float)pt[1]);
+            props.Start = new Vector3((float)pt[0], 0, (float)pt[1]);
             lineRenderer.EndLine(props);
         }
     }

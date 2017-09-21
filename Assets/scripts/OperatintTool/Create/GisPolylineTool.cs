@@ -39,7 +39,12 @@ public class GisPolylineTool : GisOperatingTool
         {
             return;
         }
-        
+        Vector2[] arr = new Vector2[line.points2.Count];
+        for (int i = 0; i < line.points2.Count; i++)
+        {
+            arr[i] = line.points2[i];
+        }
+        Send("CreateFeature", arr);
         VectorLine.Destroy(ref line);
         line = null;
     }
