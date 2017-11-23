@@ -247,18 +247,32 @@ public class GisWrapper : IMouseAction
     {
         optool.OnDblClk();
     }
-    public void CreateModel()
+    public void CreateModelFromGis()
     {
         var lst = model.GetSpatialResult();
+//         float lastTime = Time.time;
         for (int i = 0; i < lst.Count; i++)
         {
-            if (lst[i].fea.GetFID() %5 != 1)
-            {
-                continue;
-                // break;
-            }
+//             if (lst[i].fea.GetFID() != 1095)
+//             {
+//                 continue;
+//                 // break;
+//             }
          
             ModelBuilder.CreateModel(viewer, polygonParent.transform, lst[i].fea);
+        }
+//         var d = Time.time - lastTime;
+//         Debug.Log(d);
+    }
+   
+    public void ClearGisModel()
+    {
+        foreach (Transform child in polygonParent.transform)
+        {
+            if (child.name.StartsWith("fea_"))
+            {
+                GameObject.Destroy(child.gameObject);
+            }
         }
     }
 

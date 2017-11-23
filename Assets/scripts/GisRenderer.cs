@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using DigitalRuby.FastLineRenderer;
 using OSGeo.OGR;
+using UnityEngine.Assertions;
 
 public class GisRenderer
 {
@@ -12,7 +13,7 @@ public class GisRenderer
 
     public void Init(FastLineRenderer lineparent, float radius)
     {
-        System.Diagnostics.Debug.Assert(lineparent != null);
+        Assert.IsNotNull(lineparent);
         lineRenderer = FastLineRenderer.CreateWithParent(null, lineparent);
         lineRenderer.Material.EnableKeyword("DISABLE_CAPS");
         lineRenderer.SetCapacity(FastLineRenderer.MaxLinesPerMesh * FastLineRenderer.VerticesPerLine);
@@ -22,7 +23,7 @@ public class GisRenderer
 
     public void DrawGeometry(Geometry geo)
     {
-        System.Diagnostics.Debug.Assert(geo != null);
+        Assert.IsNotNull(geo);
         wkbGeometryType t = Ogr.GT_Flatten(geo.GetGeometryType());
         switch (t)
         {
@@ -70,11 +71,11 @@ public class GisRenderer
             for (int i = 0; i < count - 1; i++)
             {
                 geo.GetPoint(i, pt);
-                props.Start = new Vector3((float)pt[0], 0, (float)pt[1]);
+                props.Start = new Vector3((float)pt[0], (float)pt[1], 0);
                 lineRenderer.AppendLine(props);
             }
             geo.GetPoint(count - 1, pt);
-            props.Start = new Vector3((float)pt[0], 0, (float)pt[1]);
+            props.Start = new Vector3((float)pt[0], (float)pt[1], 0);
             lineRenderer.EndLine(props);
         }
     }

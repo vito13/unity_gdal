@@ -17,16 +17,19 @@ public class usegis : MonoBehaviour
     GameObject polygonParent;
     [SerializeField]
     Toggle sqtype; // 用于监测当前空间查询的关系方式，对应SpatialRelation_TYPE枚举
+    [SerializeField]
+    Material[] modelMaterial;
 
 
     GisWrapper gis = null;
     Vector3 mouseDown = Vector3.zero;
-    float t = 0;
+
 
     void Awake()
     {
         testpy();
         GisWrapper.polygonParent = polygonParent;
+        ModelBuilder.SetMaterial(modelMaterial);
         Load();
     }
 
@@ -106,7 +109,13 @@ public class usegis : MonoBehaviour
     public void CreateModel()
     {
         if (gis != null)
-            gis.CreateModel();
+            gis.CreateModelFromGis();
+    }
+
+    public void ClearModel()
+    {
+        if (gis != null)
+            gis.ClearGisModel();
     }
 
     void Transmit()
@@ -159,8 +168,9 @@ public class usegis : MonoBehaviour
         Clear();
         gis = new GisWrapper();
         gis.Init(defaultRenderer, selectionRenderer);
-        // gis.LoadFile("D:\\000testdata\\testshp11\\bou2_4p.shp");
-        gis.LoadFile("D:\\000testdata\\hgd\\poly.shp");
+        //gis.LoadFile("D:\\000testdata\\testshp11\\bou2_4p.shp");
+        gis.LoadFile("D:\\000testdata\\hgd2\\Export_Output.shp");
+        // gis.LoadFile("D:\\000testdata\\tx\\shp-shekou-beijing54\\building_polygon_Project.shp");
         FullExtend();
         gis.Redraw();
     }
@@ -176,12 +186,18 @@ public class usegis : MonoBehaviour
 
     void testpy()
     {
-        var script = Resources.Load<TextAsset>("aaa").text; // resources内
-        var scriptEngine = IronPython.Hosting.Python.CreateEngine();
-        var scriptScope = scriptEngine.CreateScope();
-        var scriptSource = scriptEngine.CreateScriptSourceFromString(script);
+        //         var script = Resources.Load<TextAsset>("aaa").text; // resources内
+        //         var scriptEngine = IronPython.Hosting.Python.CreateEngine();
+        //         var scriptScope = scriptEngine.CreateScope();
+        //         var scriptSource = scriptEngine.CreateScriptSourceFromString(script);
+        // 
+        //         var s = scriptSource.Execute(scriptScope);
+        //         Debug.Log(s);
 
-        scriptSource.Execute(scriptScope);
 
+//         ScriptRuntime pyRuntime = Python.CreateRuntime();
+//         dynamic py = pyRuntime.UseFile("E:\\unity\\test\\gdal\\Assets\\Resources\\aaa.txt");
+// 
+//         Debug.Log("a");
     }
 }

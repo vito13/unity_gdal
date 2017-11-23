@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using DigitalRuby.FastLineRenderer;
 using OSGeo.OGR;
+using UnityEngine.Assertions;
 
 public class GisSelectionSet
 {
@@ -13,7 +14,7 @@ public class GisSelectionSet
 
     public void Init(FastLineRenderer parent, float radius)
     {
-        System.Diagnostics.Debug.Assert(parent != null);
+        Assert.IsNotNull(parent);
         lineRenderer = FastLineRenderer.CreateWithParent(null, parent);
         lineRenderer.Material.EnableKeyword("DISABLE_CAPS");
         lineRenderer.SetCapacity(FastLineRenderer.MaxLinesPerMesh * FastLineRenderer.VerticesPerLine);

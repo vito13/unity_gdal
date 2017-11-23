@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using OSGeo.OGR;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public class GisModel{
     DataSource ds = null;
@@ -15,10 +16,10 @@ public class GisModel{
     {
         Clear();
         ds = Ogr.Open(fname, 1);
-        System.Diagnostics.Debug.Assert(ds != null);
-        System.Diagnostics.Debug.Assert(ds.GetLayerCount() > 0);
+        Assert.IsNotNull(ds);
+        Assert.IsTrue(ds.GetLayerCount() > 0);
         layer = ds.GetLayerByIndex(0);
-        System.Diagnostics.Debug.Assert(layer != null);
+        Assert.IsNotNull(layer);
         
 
         spatialquery = new GisSpatialQuery();
@@ -48,10 +49,27 @@ public class GisModel{
         mapenv = new Enyim.Collections.Envelope(env.MinX, env.MinY, env.MaxX, env.MaxY);
         env.Dispose();
 
+
+//         var layerdef = layer.GetLayerDefn();
+//         var c = layerdef.GetFieldCount();
+//         for (int i = 0; i < c; i++)
+//         {
+//             var fielddef = layerdef.GetFieldDefn(i);
+//             System.Diagnostics.Debug.Assert(fielddef != null);
+//  
+// 
+//             Debug.Log(fielddef.GetName());
+//             Debug.Log(fielddef.GetTypeName());
+//             Debug.Log(fielddef.GetWidth());
+//         }
+
+
         layer.ResetReading();
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
+//             var s = feat.GetFieldAsString("DLMCX");
+//             Debug.Log(s);
             spatialquery.Insert(feat);
         }
     }

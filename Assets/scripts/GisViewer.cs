@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Vectrosity;
+using UnityEngine.Assertions;
 
 public class GisViewer
 {
@@ -17,6 +18,7 @@ public class GisViewer
 
     public void Init()
     {
+        Assert.IsNotNull(Camera.main);
         Camera.main.orthographic = true;
         Camera.main.farClipPlane = 1000;
         Camera.main.nearClipPlane = 0;

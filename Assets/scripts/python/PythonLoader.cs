@@ -19,7 +19,7 @@ public class PythonLoader : MonoBehaviour
         var scriptScope = scriptEngine.CreateScope();
         var scriptSource = scriptEngine.CreateScriptSourceFromString(script);
 
-        // scriptSource.Execute(scriptScope);
+        scriptSource.Execute(scriptScope);
         // var print_message = scriptScope.GetVariable<Func<object>>("say_hello"); // 找不到此函数。。。
         // print_message();
     }

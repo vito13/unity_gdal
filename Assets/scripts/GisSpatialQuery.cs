@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Enyim.Collections;
 using UnityEngine;
 using OSGeo.OGR;
-
+using UnityEngine.Assertions;
 
 public class NoteData
 {
@@ -28,7 +28,7 @@ public class GisSpatialQuery{
         NoteData data = new NoteData();
         data.fea = f;
         var geo = data.fea.GetGeometryRef();
-        System.Diagnostics.Debug.Assert(geo != null);
+        Assert.IsNotNull(geo);
         OSGeo.OGR.Envelope envogr = new OSGeo.OGR.Envelope();
         geo.GetEnvelope(envogr);
         Enyim.Collections.Envelope env = new Enyim.Collections.Envelope(envogr.MinX, envogr.MinY, envogr.MaxX, envogr.MaxY);

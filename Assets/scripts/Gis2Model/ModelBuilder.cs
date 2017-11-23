@@ -3,24 +3,72 @@ using System.Collections.Generic;
 using UnityEngine;
 using OSGeo.OGR;
 using System;
-using Vectrosity;
 
 public class ModelBuilder
 {
-    static VectorLine line;
+    static List<Material> materialArr = new List<Material>();
 
-  
+    public static void SetMaterial(Material[] arr)
+    {
+        materialArr.Clear();
+        materialArr.AddRange(arr);
+    }
 
-    static int index = 0;
     public static GameObject CreateModel(GisViewer viewer, Transform parent, Feature fea)
     {
-        var geom = fea.GetGeometryRef().Clone(); //.SimplifyPreserveTopology(10);
+        string dlmcx = "1";//fea.GetFieldAsString("DLMCX");
+        int dlmxctype = int.Parse(dlmcx) - 1;
+        /*
+        建筑基底  1
+        绿地      2
+        马路牙    3
+        人行道    4
+        水面      5
+        水泥路    6
+        停车位    7
+        装饰路    8
+         */
+
+        var geom = fea.GetGeometryRef(); // fea.GetGeometryRef().Buffer(1, 1).Simplify(0.5);
         viewer.TransformGeometry2View(ref geom);
 
-        float ypos = UnityEngine.Random.Range(20.0f, 50.0f);
+        float ypos = 0;
+        switch (dlmxctype)
+        {
+            case 0:
+                ypos = UnityEngine.Random.Range(50.0f, 100.0f);
+                ypos = UnityEngine.Random.Range(5.0f, 10.0f);
+                break;
+            case 1:
+                ypos = 5;
+                break;
+            case 2:
+                ypos = 8;
+                break;
+            case 3:
+                ypos = 4;
+                break;
+            case 4:
+                ypos = 3;
+                break;
+            case 5:
+                ypos = 6;
+                break;
+            case 6:
+                ypos = 6;
+                break;
+            case 7:
+                ypos = 6;
+                break;
+           
+            default:
+                break;
+        }
+
+
 
         // 创建顶面
-        var name = fea.GetFID().ToString();
+        var name = "fea_" + fea.GetFID().ToString();
         GameObject go = new GameObject(name);
         go.transform.parent = parent;
 
@@ -34,23 +82,22 @@ public class ModelBuilder
             case wkbGeometryType.wkbPolygon:
                 {
                     Geometry linestring = geom.GetGeometryRef(0);
-                    AttachModel(go, linestring, ypos);
+                    AttachModel(go, linestring, ypos, dlmxctype);
                 }
                 break;
             case wkbGeometryType.wkbLineString:
                 {
-                    AttachModel(go, geom, ypos);
+                    AttachModel(go, geom, ypos, dlmxctype);
                 }
                 break;
             default:
                 break;
         }
         geom.Dispose();
-        // 创建侧面
         return go;
     }
 
-    static void AttachModel(GameObject top, Geometry ls, float ypos)
+    static void AttachModel(GameObject top, Geometry ls, float ypos, int type)
     {
         int count = ls.GetPointCount();
         if (count >= 2)
@@ -84,35 +131,14 @@ public class ModelBuilder
             top.AddComponent(typeof(MeshRenderer));
             MeshFilter filter = top.AddComponent(typeof(MeshFilter)) as MeshFilter;
             filter.mesh = msh;
-            top.GetComponent<MeshRenderer>().material.color = Color.gray;
-
-
-//             line = new VectorLine("Selection", new List<Vector2>(), null, 1.0f, LineType.Continuous);
-//             line.capLength = 0.5f;
-//             line.SetColor(Color.white);
-//             for (int i = 0; i < arr.Length; i++)
-//             {
-//                 line.points2.Add(arr[i]);
-//             }
-//             line.Draw();
-
-
-            // side model
-            AttachSide(top, arr, ypos);
+            top.GetComponent<MeshRenderer>().material = materialArr[type];
+            AttachSide(top, arr, ypos, type);
         }
     }
 
-    static void AttachSide(GameObject top, Vector2[] arr, float ypos)
+    static void AttachSide(GameObject top, Vector2[] arr, float ypos, int type)
     {
-        // Debug.Log(arr.Length);
-
-
-//         Vector2[] arr = new Vector2[3];
-//         arr[0] = new Vector2(0, 0);
-//         arr[1] = new Vector2(50, 0);
-//         arr[2] = new Vector2(0, 50);
-
-        var name = top.name + "side";
+        var name = top.name + "_side";
         GameObject side = new GameObject(name);
         side.transform.parent = top.transform;
 
@@ -140,29 +166,7 @@ public class ModelBuilder
         }
 
         int[] indices = new int[arr.Length * 6];
- /*
-        indices[0] = 0;
-        indices[1] = 2;
-        indices[2] = 1;
-        indices[3] = 1;
-        indices[4] = 2;
-        indices[5] = 3;
 
-        indices[6] = 2;
-        indices[7] = 4;
-        indices[8] = 3;
-        indices[9] = 3;
-        indices[10] = 4;
-        indices[11] = 5;
-
-        indices[12] = 4;
-        indices[13] = 0;
-        indices[14] = 5;
-        indices[15] = 5;
-        indices[16] = 0;
-        indices[17] = 1;
-       
-        */
         for (int m = 0; m < indices.Length; m += 6)
         {
              
@@ -176,13 +180,6 @@ public class ModelBuilder
         //    1     3     5     1
             
             var basenum = m / 3;
-//             indices[m + 0] = basenum + 0;
-//             indices[m + 1] = basenum + 2 >= vertices.Length ? 0 : basenum + 2;
-//             indices[m + 2] = basenum + 1;
-//             indices[m + 3] = basenum + 1;
-//             indices[m + 4] = basenum + 2 >= vertices.Length ? 0 : basenum + 2;
-//             indices[m + 5] = basenum + 3 >= vertices.Length ? 1 : basenum + 3;
-
             indices[m + 0] = basenum + 0;
             indices[m + 1] = basenum + 1;
             indices[m + 2] = basenum + 2 >= vertices.Length ? 0 : basenum + 2;
@@ -190,11 +187,11 @@ public class ModelBuilder
             indices[m + 4] = basenum + 1;
             indices[m + 5] = basenum + 3 >= vertices.Length ? 1 : basenum + 3;
         }
-        for (int i = 0; i < indices.Length; i+=3)
-        {
-            string s = string.Format("{0}, {1}, {2}", indices[i], indices[i+1], indices[i+2]);
-            Debug.Log(s);
-        }
+//         for (int i = 0; i < indices.Length; i+=3)
+//         {
+//             string s = string.Format("{0}, {1}, {2}", indices[i], indices[i+1], indices[i+2]);
+//             Debug.Log(s);
+//         }
        
         Mesh msh = new Mesh();
         msh.vertices = vertices;
@@ -205,6 +202,6 @@ public class ModelBuilder
         side.AddComponent(typeof(MeshRenderer));
         MeshFilter filter = side.AddComponent(typeof(MeshFilter)) as MeshFilter;
         filter.mesh = msh;
-        side.GetComponent<MeshRenderer>().material.color = Color.gray;
+        side.GetComponent<MeshRenderer>().material = materialArr[type];
     }
 }

@@ -10,10 +10,7 @@ import datetime
 
 def print_message():
     UnityEngine.Debug.Log('Test message from Python!')
-#    UnityEngine.Debug.Log(datetime.datetime.today())
-
-
-#print_message()
-
 def p2():
     UnityEngine.Debug.Log(datetime.datetime.today())
+def say_hello():
+    print("hello!")

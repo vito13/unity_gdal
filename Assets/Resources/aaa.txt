@@ -3,10 +3,27 @@
 import clr
 clr.AddReferenceByPartialName('UnityEngine')
 import UnityEngine
+#import matplotlib.pyplot as plt
+#import matplotlib
+#from matplotlib import pyplot as plt
 
 
 def print_message():
     UnityEngine.Debug.Log('Test message from Pythonxxx!')
+    s={1: 'a', 2:'bb', 3:'ccc'}
+		return s
+   # years = [1950, 1960, 1970, 1980, 1990, 2000, 2010] 
+    #gdp = [300.2, 543.3, 1075.9, 2862.5, 5979.6, 10289.7, 14958.3] 
+ 
+    # 创建一幅线图， x轴是年份ﺿy轴是gdp 
+ #   plt.plot(years, gdp, color='green', marker='o', linestyle='solid') 
+     
+    # 添加一个标�?
+  #  plt.title(u"名义GDP",fontproperties=zhfont1) 
+     
+    # 给y轴加标记 
+   # plt.ylabel(u"十亿美元",fontproperties=zhfont1) 
+    #plt.show()
 
 
 print_message()
