@@ -8,7 +8,7 @@ public class SpeedRoadCrossingMgr : MonoBehaviour {
     Transform parent = null;
     Dictionary<long, SpeedRoadCrossing> map = new Dictionary<long, SpeedRoadCrossing>();
 
-    public void LoadFile(string fname, Transform par, GameObject prefab)
+    public void LoadFile(string fname, Transform par, GameObject prefab, SpeedRoadSectionMgr secmgr)
     {
         parent = par;
         DataSource ds = Ogr.Open(fname, 0);
@@ -21,24 +21,31 @@ public class SpeedRoadCrossingMgr : MonoBehaviour {
         {
             GameObject obj = GameObject.Instantiate(prefab);
             obj.transform.parent = parent;
-            SpeedRoadCrossing sec = new SpeedRoadCrossing(ref obj, feat);
-            map[sec.Fid] = sec;
+            SpeedRoadCrossing crossing = new SpeedRoadCrossing(ref obj, feat, secmgr);
+            map[crossing.Fid] = crossing;
         }
     }
 
-    public SpeedRoadCrossing GetSection(int fid)
+    public SpeedRoadCrossing GetCrossing(int fid)
     {
-        Transform t = parent.FindChild(fid.ToString());
-        Assert.IsNotNull(t);
-        return t.gameObject.GetComponent<SpeedRoadCrossing>();
+        return null;
     }
-
-    public void CalculateCrossingMesh(SpeedRoadSectionMgr secmgr)
-    {
-        foreach (var item in map)
-        {
-            var crossing = item.Value;
-            var secs = crossing.Sections;
-         }
-    }
+//     public void CalculateCrossingMesh(SpeedRoadSectionMgr secmgr)
+//     {
+//         foreach (var item in map)
+//         {
+//             var crossing = item.Value;
+//             var secs = crossing.Sections;
+// 
+//             List<SpeedRoadSection> lst = new List<SpeedRoadSection>();
+//             foreach (var fid in secs)
+//             {
+//                 var section = secmgr.GetSection(fid);
+//                 lst.Add(section);
+//             }
+// 
+//             var sortedlst = crossing.SortSections(lst);
+// 
+//          }
+//     }
 }

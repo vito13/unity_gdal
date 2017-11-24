@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using OSGeo.OGR;
+using DigitalRuby.FastLineRenderer;
 
 public class SpeedRoad : MonoBehaviour {
     GameObject prefab = null;
@@ -61,8 +62,8 @@ public class SpeedRoad : MonoBehaviour {
             GameObject crossingMgrObj = Instantiate(prefab);
             crossingMgrObj.transform.parent = transform;
             crossingMgrObj.name = "SpeedRoadCrossingMgr";
-            crossingMgr.LoadFile(fname, crossingMgrObj.transform, prefab);
-            crossingMgr.CalculateCrossingMesh(sectionMgr);
+            crossingMgr.LoadFile(fname, crossingMgrObj.transform, prefab, sectionMgr);
         }
+
     }
 }

@@ -8,11 +8,58 @@ public class SpeedRoadSection{
     static readonly int magicnum = 4;
     int original = -1;
     long fid = -1;
+    public long Fid
+    {
+        get
+        {
+            return fid;
+        }
+        set
+        {
+            fid = Fid;
+        }
+    }
+
     int startCorssing = -1;
+    public int StartCorssing
+    {
+        get
+        {
+            return startCorssing;
+        }
+        set
+        {
+            startCorssing = StartCorssing;
+        }
+    }
     int endCrossing = -1;
+    public int EndCrossing
+    {
+        get
+        {
+            return endCrossing;
+        }
+        set
+        {
+            endCrossing = EndCrossing;
+        }
+    }
+
     int s2e_ways = -1;
     int e2s_ways = -1;
     Vector3[] ptarr = null;
+    public Vector3[] PtArr
+    {
+        get
+        {
+            return ptarr;
+        }
+        set
+        {
+            ptarr = PtArr;
+        }
+    }
+
     float roadwidth = 0;
 
     public SpeedRoadSection(ref GameObject obj, Feature fea)
@@ -23,11 +70,6 @@ public class SpeedRoadSection{
             geo.GetPointCount() >= 2
             );
         Init(ref obj, fea);
-    }
-
-    public long GetFid()
-    {
-        return fid;
     }
 
     void CreateGeo(List<Vector3> lst, ref Geometry dst)
@@ -147,16 +189,24 @@ public class SpeedRoadSection{
             idx.Add(i + 1);
         }
 
+        List<Vector2> uv = new List<Vector2>();
+        for (int i = 0; i < ptarr.Length / 2; i++)
+        {
+            uv.Add(new Vector2(0, 1));
+            uv.Add(new Vector2(0, 0));
+        }
+
         Mesh msh = new Mesh();
         msh.vertices = ptarr;
         msh.triangles = idx.ToArray();
+        msh.uv = uv.ToArray();
         msh.RecalculateNormals();
         msh.RecalculateBounds();
 
         obj.AddComponent(typeof(MeshRenderer));
         MeshFilter filter = obj.AddComponent(typeof(MeshFilter)) as MeshFilter;
         filter.mesh = msh;
-        obj.GetComponent<MeshRenderer>().material.color = new Color(1, 0, 0, 0.5f);
+        obj.GetComponent<MeshRenderer>().material.color = Color.gray;
         obj.name = fid.ToString();
     }
 
@@ -191,7 +241,7 @@ public class SpeedRoadSection{
     }
 
 
-    static float AngleBetween(Vector3 vector1, Vector3 vector2)
+    static public float AngleBetween(Vector3 vector1, Vector3 vector2)
     {
         float sin = vector1.x * vector2.y - vector2.x * vector1.y;
         float cos = vector1.x * vector2.x + vector1.y * vector2.y;

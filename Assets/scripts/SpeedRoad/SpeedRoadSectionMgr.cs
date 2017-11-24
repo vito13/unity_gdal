@@ -4,8 +4,11 @@ using UnityEngine;
 using OSGeo.OGR;
 using UnityEngine.Assertions;
 
-public class SpeedRoadSectionMgr {
+public class SpeedRoadSectionMgr
+{
     Transform parent = null;
+    Dictionary<long, SpeedRoadSection> map = new Dictionary<long, SpeedRoadSection>();
+
 
     public void LoadFile(string fname, Transform par, GameObject prefab)
     {
@@ -13,26 +16,30 @@ public class SpeedRoadSectionMgr {
         DataSource ds = Ogr.Open(fname, 0);
         Assert.IsNotNull(ds);
         Assert.IsTrue(ds.GetLayerCount() > 0);
-        
+
         Layer layer = ds.GetLayerByIndex(0);
         layer.ResetReading();
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
-//              if (feat.GetFID() != 62)
-//              {
-//                  continue;
-//              }
+            //              if (feat.GetFID() != 62)
+            //              {
+            //                  continue;
+            //              }
             GameObject obj = GameObject.Instantiate(prefab);
             obj.transform.parent = parent;
             SpeedRoadSection sec = new SpeedRoadSection(ref obj, feat);
+            map[sec.Fid] = sec;
         }
     }
 
-    public SpeedRoadSection GetSection(int fid)
+    public SpeedRoadSection GetSection(long fid)
     {
-         Transform t = parent.FindChild(fid.ToString());
-         Assert.IsNotNull(t);
-         return t.gameObject.GetComponent<SpeedRoadSection>();
+        SpeedRoadSection result = null;
+        if (map.ContainsKey(fid))
+        {
+            result = map[fid];
+        }
+        return result;
     }
 }
