@@ -87,7 +87,7 @@ public class SpeedRoadCrossing
             if (sec.StartCorssing == Fid)
             {
                 var dst = sec.PtArr[2] - sec.PtArr[0];
-                angle = SpeedRoadSection.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
+                angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
                 List<Vector3> value = new List<Vector3>();
                 value.Add(sec.PtArr[0]);
                 value.Add(sec.PtArr[1]);
@@ -97,7 +97,7 @@ public class SpeedRoadCrossing
             if (sec.EndCrossing == Fid)
             {
                 var dst = sec.PtArr[sec.PtArr.Length - 4] - sec.PtArr[sec.PtArr.Length - 2];
-                angle = SpeedRoadSection.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
+                angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
                 List<Vector3> value = new List<Vector3>();
                 value.Add(sec.PtArr[sec.PtArr.Length - 1]);
                 value.Add(sec.PtArr[sec.PtArr.Length - 2]);

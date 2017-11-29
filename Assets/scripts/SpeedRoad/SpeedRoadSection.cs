@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using OSGeo.OGR;
 using UnityEngine;
 using UnityEngine.Assertions;
+using System.IO;
 
-public class SpeedRoadSection{
+public class SpeedRoadSection
+{
     static readonly int magicnum = 4;
     int original = -1;
     long fid = -1;
@@ -71,68 +73,7 @@ public class SpeedRoadSection{
             );
         Init(ref obj, fea);
     }
-
-    void CreateGeo(List<Vector3> lst, ref Geometry dst)
-    {
-        foreach (var item in lst)
-        {
-            dst.AddPoint_2D(item.x, item.y);
-        }
-        Assert.IsTrue(dst.GetPointCount() >= 2);
-    }
-
-    List<Vector3> RemoveSamePoint(Geometry src)
-    {
-        List<Vector3> result = new List<Vector3>();
-        double x1 = src.GetX(0);
-        double y1 = src.GetY(0);
-        result.Add(new Vector3((float)x1, (float)y1));
-        int c = src.GetPointCount();
-        for (int i = 1; i < c; i++)
-        {
-            double x2 = src.GetX(i);
-            double y2 = src.GetY(i);
-            if (x1 != x2 || y1 != y2)
-            {
-                result.Add(new Vector3((float)x2, (float)y2));
-                x1 = x2;
-                y1 = y2;
-            }
-//             else
-//             {
-//                 Debug.Log("去除相同点");
-//             }
-        }
-        Assert.IsTrue(result.Count >= 2);
-        return result;
-    }
-
-    List<Vector3> OptimizeLine(List<Vector3> lst)
-    {
-        if (lst.Count == 2)
-        {
-            return lst;
-        }
-        List<Vector3> result = new List<Vector3>();
-        result.Add(lst[0]);
-        result.Add(lst[1]);
-
-        var d1 = AngleBetween(Vector3.right, lst[1] - lst[0]);
-        for (int i = 2; i < lst.Count; i++)
-        {
-            var d2 = AngleBetween(Vector3.right, lst[i] - lst[i - 1]);
-            if (Mathf.Abs(d1 - d2) < SpeedRoad.AngleThreshold)
-            {
-                result.RemoveAt(result.Count - 1);
-//                 Debug.Log("优化线段");
-            }
-            result.Add(lst[i]);
-            d1 = d2;
-        }
-
-        Assert.IsTrue(result.Count >= 2);
-        return result;
-    }
+    
 
     void Init(ref GameObject obj, Feature fea)
     {
@@ -144,20 +85,14 @@ public class SpeedRoadSection{
         e2s_ways = fea.GetFieldAsInteger("e2s_ways");
         roadwidth = (s2e_ways + e2s_ways) * SpeedRoad.RoadwayWidth;
 
-        Geometry ls = new Geometry(wkbGeometryType.wkbLineString);
-        {
-            var pts = RemoveSamePoint(fea.GetGeometryRef());
-            var result = OptimizeLine(pts);
-            CutCrossing(ref result, roadwidth);
-            CreateGeo(result, ref ls);
-        }
+        var pts = SpeedRoadUtils.RemoveSamePoint(fea.GetGeometryRef());
+        var lstpts = SpeedRoadUtils.OptimizeLine(pts);
+        SpeedRoadUtils.CutCrossing(startCorssing, endCrossing, ref lstpts, roadwidth);
 
-        // 取线上所有点
-        List<Vector3> lstpts = new List<Vector3>();
-        for (int i = 0; i < ls.GetPointCount(); i++)
-        {
-            lstpts.Add(new Vector3((float)ls.GetX(i), (float)ls.GetY(i), 0));
-        }
+        // uv分段处理
+        int lindex = 0; // 存储路段两端人行道uv
+        int rindex = 0;
+        var lstAddPart = PartHandle(ref lstpts, ref lindex, ref rindex);
 
         // 构建顶点数组
         ptarr = new Vector3[magicnum * (lstpts.Count - 1)];
@@ -165,10 +100,13 @@ public class SpeedRoadSection{
         for (int i = 0; i < lstpts.Count - 1; i++)
         {
             Widen(lstpts[i], lstpts[i + 1], index);
-            Corner(index);
+            bool bisaddpart = lstAddPart.Contains(lstpts[i]);
+            if (!bisaddpart)
+            {
+                Corner(index);
+            }
             index += magicnum;
         }
-
 
         for (int i = 0; i < ptarr.Length; i++)
         {
@@ -189,17 +127,91 @@ public class SpeedRoadSection{
             idx.Add(i + 1);
         }
 
-        List<Vector2> uv = new List<Vector2>();
-        for (int i = 0; i < ptarr.Length / 2; i++)
-        {
-            uv.Add(new Vector2(0, 1));
-            uv.Add(new Vector2(0, 0));
-        }
+        // 
+        
+       
 
         Mesh msh = new Mesh();
         msh.vertices = ptarr;
         msh.triangles = idx.ToArray();
-        msh.uv = uv.ToArray();
+
+
+
+//         var te = new Texture2D(
+//             (s2e_ways + e2s_ways) * SpeedRoad.RoadZebraCrossings4Way * 2,
+//             5,
+//             TextureFormat.RGBA32, 
+//             false);
+
+
+
+
+        {
+//             var width = te.width;
+//             var height = te.height;
+//             var pixels = te.GetPixels32();
+//             int offs = 0;
+// 
+//             Color32 colroad = Color.gray;
+//             Color32 colline = Color.white;
+//             Color32 colsolid = Color.yellow;
+// 
+//             te.SetPixel(0, 0, colline);
+//             te.SetPixel(0, 2, colline);
+//             te.SetPixel(0, 4, colline);
+//             te.SetPixel(2, 0, colsolid);
+//             te.SetPixel(2, 4, colsolid);
+//             te.SetPixel(4, 0, colline);
+//             te.SetPixel(4, 2, colline);
+//             te.SetPixel(4, 4, colline);
+
+            //             for (int i = 0; i < height; i += 2)
+            //             {
+            //                 te.SetPixel(i, 0, colline);
+            //                 te.SetPixel(i, 4, colline);
+            //             }
+            //             for (int m = 0; m < height; m++)
+            //             {
+            //                 for (int n = 1; n < width - 2; n++)
+            //                 {
+            //                     te.SetPixel(m, n, colroad);
+            //                 }
+            //             }
+            //             te.SetPixel(0, 2, Color.yellow);
+            //             te.SetPixel(height - 1, 2, Color.yellow);
+//             te.Apply();
+
+            
+            List<Vector2> uvZebraCrossing = new List<Vector2>();
+            uvZebraCrossing.Add(new Vector2(0, 1));
+            uvZebraCrossing.Add(new Vector2(0, 0));
+            float ratio = 0.4f;
+            rindex = ptarr.Length / 2 - 1 - rindex;
+            bool lindexok = false;
+            for (int i = 1; i < ptarr.Length / 2 - 1; i++)
+            {
+                if (i == lindex)
+                {
+                    ratio = 0.2f;
+                }
+                else if (i == rindex)
+                {
+                    ratio = 0.8f;
+                }
+                uvZebraCrossing.Add(new Vector2(ratio, 1));
+                uvZebraCrossing.Add(new Vector2(ratio, 0));
+            }
+            uvZebraCrossing.Add(new Vector2(1, 1));
+            uvZebraCrossing.Add(new Vector2(1, 0));
+
+            msh.uv = uvZebraCrossing.ToArray();
+            
+        }
+         
+
+
+
+
         msh.RecalculateNormals();
         msh.RecalculateBounds();
 
@@ -208,77 +220,51 @@ public class SpeedRoadSection{
         filter.mesh = msh;
         obj.GetComponent<MeshRenderer>().material.color = Color.gray;
         obj.name = fid.ToString();
+        obj.GetComponent<MeshRenderer>().material.mainTexture = SpeedRoad.RoadTexture2D;
+    //    byte[] bytes = te.EncodeToPNG();
+    //    File.WriteAllBytes(Application.dataPath + "/onPcSavedScreen.png", bytes);
     }
 
-    void CutCrossing(ref List<Vector3> lst, float cutLength)
+    
+
+
+    
+
+   
+
+    List<Vector3> PartHandle(ref List<Vector3> lst, ref int lindex, ref int rindex)
     {
-        if (startCorssing != -1)
+        List<Vector3> result = new List<Vector3>();
+        List<float> lstPartLen = new List<float>();
+        var roadlen = SpeedRoadUtils.GetRoadLen(lst, ref lstPartLen);
+        float minimumZebraCrossingInSection = SpeedRoad.RoadZebraCrossingLength * 2; // 两端斑马线最少占用长度
+        float surplus = roadlen - minimumZebraCrossingInSection;
+        if (surplus > 0)
         {
-            float d = Vector3.Distance(lst[1], lst[0]);
-            if (d >= cutLength)
-            {
-                lst[0] = Vector3.Lerp(lst[1], lst[0], (d - cutLength) / d);
-            }
-            else
-            {
-                lst.RemoveAt(0);
-                CutCrossing(ref lst, cutLength - d);
-            }
+            var head = SpeedRoadUtils.AddZebraCrossingHead(lstPartLen, ref lst, ref lindex);
+            result.Add(head);
+            SpeedRoadUtils.GetRoadLen(lst, ref lstPartLen);
+            var tail = SpeedRoadUtils.AddZebraCrossingTail(lstPartLen, ref lst, ref rindex);
+            result.Add(tail);
         }
-        if (endCrossing != -1)
-        {
-            float d = Vector3.Distance(lst[lst.Count - 1], lst[lst.Count - 2]);
-            if (d >= cutLength)
-            {
-                lst[lst.Count - 1] = Vector3.Lerp(lst[lst.Count - 2], lst[lst.Count - 1], (d - cutLength) / d);
-            }
-            else
-            {
-                lst.RemoveAt(lst.Count - 1);
-                CutCrossing(ref lst, cutLength - d);
-            }
-        }
+        return result;
     }
 
+    
 
-    static public float AngleBetween(Vector3 vector1, Vector3 vector2)
-    {
-        float sin = vector1.x * vector2.y - vector2.x * vector1.y;
-        float cos = vector1.x * vector2.x + vector1.y * vector2.y;
-        return Mathf.Atan2(sin, cos) * (180 / Mathf.PI);
-    }
 
-    static bool Calculate2LineCrossing(Vector3 l1start, Vector3 l1end, Vector3 l2start, Vector3 l2end, ref Vector3 crossing)
-    {
-        bool r = false;
-        Geometry l1 = new Geometry(wkbGeometryType.wkbLineString);
-        l1.AddPoint_2D(l1start.x, l1start.y);
-        l1.AddPoint_2D(l1end.x, l1end.y);
+   
 
-        Geometry l2 = new Geometry(wkbGeometryType.wkbLineString);
-        l2.AddPoint_2D(l2start.x, l2start.y);
-        l2.AddPoint_2D(l2end.x, l2end.y);
-        Geometry intersection = l1.Intersection(l2);
-        intersection.FlattenTo2D();
-        wkbGeometryType t = intersection.GetGeometryType();
-        if (wkbGeometryType.wkbPoint == t)
-        {
-            r = true;
-            crossing.x = (float)intersection.GetX(0);
-            crossing.y = (float)intersection.GetY(0);
-        }
-        return r;
-    }
-
+   
     void Widen(Vector3 start, Vector3 end, int index)
     {
-        float rstart = AngleBetween(Vector3.right, end - start);
+        float rstart = SpeedRoadUtils.AngleBetween(Vector3.right, end - start);
         Quaternion rotation = Quaternion.Euler(0, 0, -rstart);
         Matrix4x4 m = Matrix4x4.TRS(Vector3.zero, rotation, Vector3.one);
         Vector3 ss = m.MultiplyPoint(start);
         Vector3 se = m.MultiplyPoint(end);
         Matrix4x4 m2 = m.inverse;
-        
+
         Vector3 halfWidth = new Vector3(0, roadwidth / 2, 0);
         ptarr[index + 0] = m2.MultiplyPoint(ss + halfWidth);
         ptarr[index + 1] = m2.MultiplyPoint(ss - halfWidth);
@@ -309,7 +295,7 @@ public class SpeedRoadSection{
         Vector3 crossing = new Vector3();
         if (pt.Within(dst))
         {
-            bool r = Calculate2LineCrossing(ptarr[index - 4], ptarr[index - 2], ptarr[index], ptarr[index + 2], ref crossing);
+            bool r = SpeedRoadUtils.Calculate2LineCrossing(ptarr[index - 4], ptarr[index - 2], ptarr[index], ptarr[index + 2], ref crossing);
             if (r)
             {
                 ptarr[index] = crossing;
@@ -346,7 +332,7 @@ public class SpeedRoadSection{
         }
         else
         {
-            bool r = Calculate2LineCrossing(ptarr[index - 3], ptarr[index - 1], ptarr[index + 1], ptarr[index + 3], ref crossing);
+            bool r = SpeedRoadUtils.Calculate2LineCrossing(ptarr[index - 3], ptarr[index - 1], ptarr[index + 1], ptarr[index + 3], ref crossing);
             if (r)
             {
                 ptarr[index - 1] = crossing;

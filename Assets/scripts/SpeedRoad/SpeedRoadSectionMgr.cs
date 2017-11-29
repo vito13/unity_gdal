@@ -22,10 +22,10 @@ public class SpeedRoadSectionMgr
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
-            //              if (feat.GetFID() != 62)
-            //              {
-            //                  continue;
-            //              }
+//             if (feat.GetFID() != 12)
+//             {
+//                 continue;
+//            
             GameObject obj = GameObject.Instantiate(prefab);
             obj.transform.parent = parent;
             SpeedRoadSection sec = new SpeedRoadSection(ref obj, feat);

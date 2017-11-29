@@ -10,16 +10,28 @@ public class SpeedRoad : MonoBehaviour {
     SpeedRoadCrossingMgr crossingMgr = new SpeedRoadCrossingMgr();
     [SerializeField]
     float wayWidth;
-    public static float RoadwayWidth;
+    public static float RoadwayWidth; // 单条车道宽度
     [SerializeField]
     float angleThreshold;
-    public static float AngleThreshold;
+    public static float RoadAngleThreshold; // 用于优化路段中比较连续两点之间的角度差
+    [SerializeField]
+    float zebraCrossingLength; // 人行道长度
+    public static float RoadZebraCrossingLength;
+    [SerializeField]
+    int zebraCrossings4Way; // 一条车道有几条斑马线
+    public static int RoadZebraCrossings4Way;
+    [SerializeField]
+    Texture2D tex;
+    public static Texture2D RoadTexture2D;
 
     // Use this for initialization
     void Start () {
         Ogr.RegisterAll();
         RoadwayWidth = wayWidth;
-        AngleThreshold = angleThreshold;
+        RoadAngleThreshold = angleThreshold;
+        RoadZebraCrossingLength = zebraCrossingLength;
+        RoadZebraCrossings4Way = zebraCrossings4Way;
+        RoadTexture2D = tex;
         prefab = Resources.Load("empty") as GameObject;
 
          /*
