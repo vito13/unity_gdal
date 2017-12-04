@@ -158,41 +158,91 @@ public class SpeedRoadUtils {
         Assert.IsTrue(bfind);
         return tail;
     }
-
-    static public Vector3 AddZebraCrossingHead(List<float> lstPartLen, ref List<Vector3> lst, ref int lindex)
+    static public List<Vector3> SegmentationPartFromTail(float distance, List<float> lstTopPartLen, List<float> lstBottomPartLen, ref List<Vector3> vertexbuf)
     {
-        lindex = 1;
-        Vector3 head = Vector3.zero;
-        bool bfind = false;
-        float dis = SpeedRoad.RoadZebraCrossingLength;
-        for (int i = 0; i < lstPartLen.Count; i++)
+        Assert.IsTrue(lstTopPartLen.Count == lstBottomPartLen.Count);
+        Assert.IsTrue(vertexbuf.Count >= 4);
+        List<Vector3> vertex = new List<Vector3>();
         {
-            if (lstPartLen[i] >= dis)
+            int bdel = 0;
+            for (int i = lstTopPartLen.Count; i >= 0 ; i--)
             {
-                head = Vector3.Lerp(lst[i + 1], lst[i], (lstPartLen[i] - dis) / lstPartLen[i]);
-                lst.Insert(i + 1, head);
-                bfind = true;
-                break;
+                vertex.Add(vertexbuf[i * 2 + 1]);
+                vertex.Add(vertexbuf[i * 2]);
+                if (lstTopPartLen[i - 1] >= distance)
+                {
+                    var ptbottom = Vector3.Lerp(vertexbuf[i * 2 + 1], vertexbuf[i * 2 - 1], distance / lstBottomPartLen[i - 1]);
+                    vertex.Add(ptbottom);
+                    vertexbuf[i * 2 + 1] = ptbottom;
+                    var pttop = Vector3.Lerp(vertexbuf[i * 2], vertexbuf[i * 2 - 2], distance / lstTopPartLen[i - 1]);
+                    vertex.Add(pttop);
+                    vertexbuf[i * 2] = pttop;
+                    break;
+                }
+                else
+                {
+                    distance -= lstTopPartLen[i - 1];
+                    bdel += 2;
+                }
             }
-            else
+
+            for (int i = 0; i < bdel; i++)
             {
-                dis -= lstPartLen[i];
-                lindex++;
+                vertexbuf.RemoveAt(vertexbuf.Count - 1);
             }
         }
-        Assert.IsTrue(bfind);
-        return head;
+        vertex.Reverse();
+        Assert.IsTrue(vertex.Count >= 4);
+        return vertex;
+    }
+    static public List<Vector3> SegmentationPartFromHead(float distance, List<float> lstTopPartLen, List<float> lstBottomPartLen, ref List<Vector3> vertexbuf)
+    {
+        Assert.IsTrue(lstTopPartLen.Count == lstBottomPartLen.Count);
+        Assert.IsTrue(vertexbuf.Count >= 4);
+        List<Vector3> vertex = new List<Vector3>();
+        {
+            int bdel = 0;
+            for (int i = 0; i < lstTopPartLen.Count; i++)
+            {
+                vertex.Add(vertexbuf[i * 2]);
+                vertex.Add(vertexbuf[i * 2 + 1]);
+                if (lstTopPartLen[i] >= distance)
+                {
+                    var pttop = Vector3.Lerp(vertexbuf[i * 2 + 2], vertexbuf[i * 2], (lstTopPartLen[i] - distance) / lstTopPartLen[i]);
+                    vertex.Add(pttop);
+                    vertexbuf[i * 2] = pttop;
+                    var ptbottom = Vector3.Lerp(vertexbuf[i * 2 + 3], vertexbuf[i * 2 + 1], (lstBottomPartLen[i] - distance) / lstBottomPartLen[i]);
+                    vertex.Add(ptbottom);
+                    vertexbuf[i * 2 + 1] = ptbottom;
+                    break;
+                }
+                else
+                {
+                    distance -= lstTopPartLen[i];
+                    bdel += 2;
+                }
+            }
+            vertexbuf.RemoveRange(0, bdel);
+        }
+        Assert.IsTrue(vertex.Count >= 4);
+        return vertex;
     }
 
-    static public float GetRoadLen(List<Vector3> lst, ref List<float> lstPartLen)
+   
+
+    static public Vector2 GetRoad2SideLen(List<Vector3> lst, ref List<float> lstTopPartLen, ref List<float> lstBottomPartLen)
     {
-        lstPartLen.Clear();
-        float result = 0;
-        for (int i = 0; i < lst.Count - 1; i++)
+        lstTopPartLen.Clear();
+        lstBottomPartLen.Clear();
+        Vector2 result = Vector2.zero;
+        for (int i = 0; i < lst.Count - 2; i+=2)
         {
-            var len = Vector3.Distance(lst[i], lst[i + 1]);
-            lstPartLen.Add(len);
-            result += len;
+            var lentop = Vector3.Distance(lst[i], lst[i + 2]);
+            lstTopPartLen.Add(lentop);
+            result.x += lentop;
+            var lenbottom = Vector3.Distance(lst[i + 1], lst[i + 3]);
+            lstBottomPartLen.Add(lenbottom);
+            result.y += lenbottom;
         }
         return result;
     }
@@ -227,13 +277,163 @@ public class SpeedRoadUtils {
         }
     }
 
-//     static public void CreateGeo(List<Vector3> lst, ref Geometry dst)
-//     {
-//         foreach (var item in lst)
-//         {
-//             dst.AddPoint_2D(item.x, item.y);
-//         }
-//         Assert.IsTrue(dst.GetPointCount() >= 2);
-//     }
+    //     static public void CreateGeo(List<Vector3> lst, ref Geometry dst)
+    //     {
+    //         foreach (var item in lst)
+    //         {
+    //             dst.AddPoint_2D(item.x, item.y);
+    //         }
+    //         Assert.IsTrue(dst.GetPointCount() >= 2);
+    //     }
 
+    static public void Widen(ref List<Vector3> vertexbuf, Vector3 start, Vector3 end, int index, float roadwidth)
+    {
+        float rstart = SpeedRoadUtils.AngleBetween(Vector3.right, end - start);
+        Quaternion rotation = Quaternion.Euler(0, 0, -rstart);
+        Matrix4x4 m = Matrix4x4.TRS(Vector3.zero, rotation, Vector3.one);
+        Vector3 ss = m.MultiplyPoint(start);
+        Vector3 se = m.MultiplyPoint(end);
+        Matrix4x4 m2 = m.inverse;
+
+        Vector3 halfWidth = new Vector3(0, roadwidth / 2, 0);
+        vertexbuf[index + 0] = m2.MultiplyPoint(ss + halfWidth);
+        vertexbuf[index + 1] = m2.MultiplyPoint(ss - halfWidth);
+        vertexbuf[index + 2] = m2.MultiplyPoint(se + halfWidth);
+        vertexbuf[index + 3] = m2.MultiplyPoint(se - halfWidth);
+    }
+
+    static public void Corner(ref List<Vector3> vertexbuf, int index)
+    {
+        if (index == 0)
+        {
+            return;
+        }
+        Assert.IsTrue(index % SpeedRoadSection.MAGICNUM == 0);
+
+        Geometry pt = new Geometry(wkbGeometryType.wkbPoint);
+        pt.AddPoint_2D(vertexbuf[index].x, vertexbuf[index].y);
+        Geometry dst = new Geometry(wkbGeometryType.wkbPolygon);
+        Geometry ring = new Geometry(wkbGeometryType.wkbLinearRing);
+        ring.AddPoint_2D(vertexbuf[index - 4].x, vertexbuf[index - 4].y);
+        ring.AddPoint_2D(vertexbuf[index - 2].x, vertexbuf[index - 2].y);
+        ring.AddPoint_2D(vertexbuf[index - 1].x, vertexbuf[index - 1].y);
+        ring.AddPoint_2D(vertexbuf[index - 3].x, vertexbuf[index - 3].y);
+        ring.CloseRings();
+        dst.AddGeometry(ring);
+        dst.FlattenTo2D();
+
+        Vector3 crossing = new Vector3();
+        if (pt.Within(dst))
+        {
+            bool r = Calculate2LineCrossing(vertexbuf[index - 4], vertexbuf[index - 2], vertexbuf[index], vertexbuf[index + 2], ref crossing);
+            if (r)
+            {
+                vertexbuf[index] = crossing;
+                vertexbuf[index - 2] = crossing;
+            }
+            else
+            {
+                Assert.IsFalse(true);
+                /*
+                var lst = new List<Geometry>();
+                lst.Add(dst);
+                ShpUtils.SaveShp("c:\\test_\\test_poly.shp", "test_poly", wkbGeometryType.wkbPolygon, lst);
+                lst.Clear();
+                lst.Add(pt);
+                ShpUtils.SaveShp("c:\\test_\\test_p.shp", "test_pt", wkbGeometryType.wkbPoint, lst);
+                lst.Clear();
+
+                Geometry l1 = new Geometry(wkbGeometryType.wkbLineString);
+                l1.AddPoint_2D(ptarr[index - 4].x, ptarr[index - 4].y);
+                l1.AddPoint_2D(ptarr[index - 2].x, ptarr[index - 2].y);
+
+                Geometry l2 = new Geometry(wkbGeometryType.wkbLineString);
+                l2.AddPoint_2D(ptarr[index].x, ptarr[index].y);
+                l2.AddPoint_2D(ptarr[index + 2].x, ptarr[index + 2].y);
+                lst.Add(l1);
+                lst.Add(l2);
+
+                var d1 = AngleBetween(Vector3.right, ptarr[index - 2] - ptarr[index - 4]);
+                var d2 = AngleBetween(Vector3.right, ptarr[index + 2] -  ptarr[index]);
+
+                ShpUtils.SaveShp("c:\\test_\\test_line.shp", "test_line", wkbGeometryType.wkbLineString, lst);
+                */
+            }
+        }
+        else
+        {
+            bool r = Calculate2LineCrossing(vertexbuf[index - 3], vertexbuf[index - 1], vertexbuf[index + 1], vertexbuf[index + 3], ref crossing);
+            if (r)
+            {
+                vertexbuf[index - 1] = crossing;
+                vertexbuf[index + 1] = crossing;
+            }
+            else
+            {
+                Assert.IsFalse(true);
+            }
+        }
+    }
+
+    static public Vector3 SwapYZ(Vector3 v)
+    {
+        return new Vector3(v.x, v.z, v.y);
+    }
+
+    static public GameObject CreateSegment(List<Vector3> vertex, GameObject feaObj, string name)
+    {
+        var vertexarr = vertex.ToArray();
+        // 构建顶点数组
+        for (int i = 0; i < vertexarr.Length; i++)
+        {
+            vertexarr[i].z = vertexarr[i].y;
+            vertexarr[i].y = 0;
+        }
+
+        // 构建索引数组
+        // 6 * (lstpts.Count * 2 - 3);
+        List<int> idx = new List<int>();
+        for (int i = 0; i < vertexarr.Length - 2; i += 2)
+        {
+            idx.Add(i + 0);
+            idx.Add(i + 2);
+            idx.Add(i + 3);
+            idx.Add(i + 0);
+            idx.Add(i + 3);
+            idx.Add(i + 1);
+        }
+        List<float> lstTopPartLen = new List<float>();
+        List<float> lstBottomPartLen = new List<float>();
+        Mesh msh = new Mesh();
+        msh.vertices = vertexarr;
+        msh.triangles = idx.ToArray();
+        msh.RecalculateNormals();
+        msh.RecalculateBounds();
+
+        GameObject obj = GameObject.Instantiate(SpeedRoad.prefab);
+        obj.transform.parent = feaObj.transform;
+
+        obj.AddComponent(typeof(MeshRenderer));
+        MeshFilter filter = obj.AddComponent(typeof(MeshFilter)) as MeshFilter;
+        filter.mesh = msh;
+        obj.name = name;
+        return obj;
+    }
+
+    static public GameObject CreateMesh_Part(ref List<Vector3> vertexbuf, GameObject feaObj, float length, string name, ref List<Vector3> partVertex, bool bhead = true)
+    {
+        List<float> lstTopPartLen = new List<float>();
+        List<float> lstBottomPartLen = new List<float>();
+        GetRoad2SideLen(vertexbuf, ref lstTopPartLen, ref lstBottomPartLen);
+        if (bhead)
+        {
+            partVertex = SegmentationPartFromHead(length, lstTopPartLen, lstBottomPartLen, ref vertexbuf);
+        }
+        else
+        {
+            partVertex = SegmentationPartFromTail(length, lstTopPartLen, lstBottomPartLen, ref vertexbuf);
+        }
+        return CreateSegment(partVertex, feaObj, name);
+       
+    }
 }

@@ -10,7 +10,7 @@ public class SpeedRoadSectionMgr
     Dictionary<long, SpeedRoadSection> map = new Dictionary<long, SpeedRoadSection>();
 
 
-    public void LoadFile(string fname, Transform par, GameObject prefab)
+    public void LoadFile(string fname, Transform par)
     {
         parent = par;
         DataSource ds = Ogr.Open(fname, 0);
@@ -22,13 +22,13 @@ public class SpeedRoadSectionMgr
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
-//             if (feat.GetFID() != 12)
+//             if (feat.GetFID() != 46)
 //             {
 //                 continue;
-//            
-            GameObject obj = GameObject.Instantiate(prefab);
-            obj.transform.parent = parent;
-            SpeedRoadSection sec = new SpeedRoadSection(ref obj, feat);
+//             }
+            GameObject feaObj = GameObject.Instantiate(SpeedRoad.prefab);
+            feaObj.transform.parent = parent;
+            SpeedRoadSection sec = new SpeedRoadSection(ref feaObj, feat);
             map[sec.Fid] = sec;
         }
     }

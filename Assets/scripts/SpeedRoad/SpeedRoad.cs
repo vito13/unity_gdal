@@ -5,9 +5,10 @@ using OSGeo.OGR;
 using DigitalRuby.FastLineRenderer;
 
 public class SpeedRoad : MonoBehaviour {
-    GameObject prefab = null;
+    static public GameObject prefab = null;
     SpeedRoadSectionMgr sectionMgr = new SpeedRoadSectionMgr();
     SpeedRoadCrossingMgr crossingMgr = new SpeedRoadCrossingMgr();
+
     [SerializeField]
     float wayWidth;
     public static float RoadwayWidth; // 单条车道宽度
@@ -21,6 +22,12 @@ public class SpeedRoad : MonoBehaviour {
     int zebraCrossings4Way; // 一条车道有几条斑马线
     public static int RoadZebraCrossings4Way;
     [SerializeField]
+    float waitingLength; // 候车箭头部分长度
+    public static float RoadWaitingLength;
+    [SerializeField]
+    int textureHeightPreWay; // 一条车道的纹理高度
+    public static int RoadTextureHeightPreWay;
+    [SerializeField]
     Texture2D tex;
     public static Texture2D RoadTexture2D;
 
@@ -31,9 +38,11 @@ public class SpeedRoad : MonoBehaviour {
         RoadAngleThreshold = angleThreshold;
         RoadZebraCrossingLength = zebraCrossingLength;
         RoadZebraCrossings4Way = zebraCrossings4Way;
+        RoadWaitingLength = waitingLength;
+        RoadTextureHeightPreWay = textureHeightPreWay;
         RoadTexture2D = tex;
         prefab = Resources.Load("empty") as GameObject;
-
+        SpeedRoadTexMgr.Instance.Init();
          /*
 
         Geometry pt = new Geometry(wkbGeometryType.wkbLineString);
@@ -66,16 +75,16 @@ public class SpeedRoad : MonoBehaviour {
             GameObject sectionMgrObj = Instantiate(prefab);
             sectionMgrObj.transform.parent = transform;
             sectionMgrObj.name = "SpeedRoadSectionMgr";
-            sectionMgr.LoadFile(fname, sectionMgrObj.transform, prefab);
+            sectionMgr.LoadFile(fname, sectionMgrObj.transform);
         }
 
-        {
-            string fname = "E:\\test\\---\\after_crossings.shp";
-            GameObject crossingMgrObj = Instantiate(prefab);
-            crossingMgrObj.transform.parent = transform;
-            crossingMgrObj.name = "SpeedRoadCrossingMgr";
-            crossingMgr.LoadFile(fname, crossingMgrObj.transform, prefab, sectionMgr);
-        }
+         {
+             string fname = "E:\\test\\---\\after_crossings.shp";
+             GameObject crossingMgrObj = Instantiate(prefab);
+             crossingMgrObj.transform.parent = transform;
+             crossingMgrObj.name = "SpeedRoadCrossingMgr";
+             crossingMgr.LoadFile(fname, crossingMgrObj.transform, prefab, sectionMgr);
+         }
 
     }
 }

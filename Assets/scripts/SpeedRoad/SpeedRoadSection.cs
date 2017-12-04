@@ -7,7 +7,7 @@ using System.IO;
 
 public class SpeedRoadSection
 {
-    static readonly int magicnum = 4;
+    static public readonly int MAGICNUM = 4;
     int original = -1;
     long fid = -1;
     public long Fid
@@ -49,33 +49,26 @@ public class SpeedRoadSection
 
     int s2e_ways = -1;
     int e2s_ways = -1;
-    Vector3[] ptarr = null;
-    public Vector3[] PtArr
-    {
-        get
-        {
-            return ptarr;
-        }
-        set
-        {
-            ptarr = PtArr;
-        }
-    }
 
+    List<Vector3> vertexZebraCrossingHead = new List<Vector3>();
+    List<Vector3> vertexZebraCrossingTail = new List<Vector3>();
+    List<Vector3> vertexWaitingHead = new List<Vector3>();
+    List<Vector3> vertexWaitingTail = new List<Vector3>();
+    List<Vector3> vertexRoad = new List<Vector3>();
     float roadwidth = 0;
 
-    public SpeedRoadSection(ref GameObject obj, Feature fea)
+    public SpeedRoadSection(ref GameObject feaObj, Feature fea)
     {
         var geo = fea.GetGeometryRef();
         Assert.IsTrue(
             geo.GetGeometryType() == wkbGeometryType.wkbLineString &&
             geo.GetPointCount() >= 2
             );
-        Init(ref obj, fea);
+        Init(ref feaObj, fea);
     }
-    
 
-    void Init(ref GameObject obj, Feature fea)
+
+    void Init(ref GameObject feaObj, Feature fea)
     {
         fid = fea.GetFID();
         original = fea.GetFieldAsInteger("original");
@@ -85,263 +78,156 @@ public class SpeedRoadSection
         e2s_ways = fea.GetFieldAsInteger("e2s_ways");
         roadwidth = (s2e_ways + e2s_ways) * SpeedRoad.RoadwayWidth;
 
+
         var pts = SpeedRoadUtils.RemoveSamePoint(fea.GetGeometryRef());
-        var lstpts = SpeedRoadUtils.OptimizeLine(pts);
-        SpeedRoadUtils.CutCrossing(startCorssing, endCrossing, ref lstpts, roadwidth);
-
-        // uv分段处理
-        int lindex = 0; // 存储路段两端人行道uv
-        int rindex = 0;
-        var lstAddPart = PartHandle(ref lstpts, ref lindex, ref rindex);
-
-        // 构建顶点数组
-        ptarr = new Vector3[magicnum * (lstpts.Count - 1)];
-        int index = 0;
-        for (int i = 0; i < lstpts.Count - 1; i++)
+        pts = SpeedRoadUtils.OptimizeLine(pts);
+        SpeedRoadUtils.CutCrossing(startCorssing, endCrossing, ref pts, roadwidth);
+        List<Vector3> vertex = new List<Vector3>();
+        for (int i = 0; i < MAGICNUM * (pts.Count - 1); i++)
         {
-            Widen(lstpts[i], lstpts[i + 1], index);
-            bool bisaddpart = lstAddPart.Contains(lstpts[i]);
-            if (!bisaddpart)
+            vertex.Add(Vector3.zero);
+        }
+
+        int ptindex = 0;
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            SpeedRoadUtils.Widen(ref vertex, pts[i], pts[i + 1], ptindex, roadwidth);
+            SpeedRoadUtils.Corner(ref vertex, ptindex);
+            ptindex += MAGICNUM;
+        }
+
+
+        CreateMesh(ref vertex, feaObj);
+        feaObj.name = fid.ToString();
+    }
+
+
+
+    void CreateMesh(ref List<Vector3> vertexbuf, GameObject feaObj)
+    {
+        List<float> lstTopPartLen = new List<float>();
+        List<float> lstBottomPartLen = new List<float>();
+        var road2Sidelen = SpeedRoadUtils.GetRoad2SideLen(vertexbuf, ref lstTopPartLen, ref lstBottomPartLen);
+        var roadCenterlen = (road2Sidelen.x + road2Sidelen.y) / 2;
+
+        string roadtype = "s" + s2e_ways.ToString() + "e" + e2s_ways.ToString();
+        if (roadCenterlen - SpeedRoad.RoadZebraCrossingLength * 2 > 0) // 两端斑马线最少占用长度
+        {
+
+            GameObject zebraCrossingHead = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadZebraCrossingLength, "zchead", ref vertexZebraCrossingHead);
+            SetTexture(vertexZebraCrossingHead, zebraCrossingHead, "ZebraCrossing", 4);
+            GameObject zebraCrossingTail = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadZebraCrossingLength, "zctail", ref vertexZebraCrossingTail, false);
+            SetTexture(vertexZebraCrossingTail, zebraCrossingTail, "ZebraCrossing", 4);
+
+            road2Sidelen = SpeedRoadUtils.GetRoad2SideLen(vertexbuf, ref lstTopPartLen, ref lstBottomPartLen);
+            roadCenterlen = (road2Sidelen.x + road2Sidelen.y) / 2;
+            bool bNotOneWay = e2s_ways > 0 && s2e_ways > 0;
+            if (bNotOneWay) // 双向车道
             {
-                Corner(index);
+                if (roadCenterlen - SpeedRoad.RoadWaitingLength * 2 > 0) // 分割双向候车区
+                {
+                    GameObject waitingHead = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitinghead", ref vertexWaitingHead);
+                    SetTexture(vertexWaitingHead, waitingHead, roadtype + "wait", 1);
+                    GameObject waitingTail = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitingtail", ref vertexWaitingTail, false);
+                }
             }
-            index += magicnum;
+            else // 单行道
+            {
+                if (roadCenterlen - SpeedRoad.RoadWaitingLength > 0) // 分割单向候车区
+                {
+                    if (e2s_ways > 0)
+                    {
+                        GameObject waitingHead = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitinghead", ref vertexWaitingHead);
+                    }
+                    else if (s2e_ways > 0)
+                    {
+                        GameObject waitingTail = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitingtail", ref vertexWaitingTail, false);
+                    }
+                    else
+                    {
+                        Assert.IsTrue(false);
+                    }
+                }
+            }
         }
-
-        for (int i = 0; i < ptarr.Length; i++)
-        {
-            ptarr[i].z = ptarr[i].y;
-            ptarr[i].y = 0;
-        }
-
-        // 构建索引数组
-        // 6 * (lstpts.Count * 2 - 3);
-        List<int> idx = new List<int>();
-        for (int i = 0; i < ptarr.Length - 2; i += 2)
-        {
-            idx.Add(i + 0);
-            idx.Add(i + 2);
-            idx.Add(i + 3);
-            idx.Add(i + 0);
-            idx.Add(i + 3);
-            idx.Add(i + 1);
-        }
-
-        // 
+        GameObject road = SpeedRoadUtils.CreateSegment(vertexbuf, feaObj, "road");
         
-       
+        SetTexture(vertexbuf, road, roadtype, 1);
+        vertexRoad = vertexbuf;
+    }
 
-        Mesh msh = new Mesh();
-        msh.vertices = ptarr;
-        msh.triangles = idx.ToArray();
-
-
-
-//         var te = new Texture2D(
-//             (s2e_ways + e2s_ways) * SpeedRoad.RoadZebraCrossings4Way * 2,
-//             5,
-//             TextureFormat.RGBA32, 
-//             false);
-
-
-
-
+    void SetTexture(List<Vector3> vertex, GameObject part, string texname, float repeatV)
+    {
+        var tex = SpeedRoadTexMgr.Instance.GetTex(texname);
+        part.GetComponent<MeshRenderer>().material.mainTexture = tex;
+        List<float> lstTopPartLen = new List<float>();
+        List<float> lstBottomPartLen = new List<float>();
+        var len = SpeedRoadUtils.GetRoad2SideLen(vertex, ref lstTopPartLen, ref lstBottomPartLen);
+        Vector2[] uv1 = new Vector2[vertex.Count];
+        float repeatU = 1;
+        if (part.name == "road")
         {
-//             var width = te.width;
-//             var height = te.height;
-//             var pixels = te.GetPixels32();
-//             int offs = 0;
-// 
-//             Color32 colroad = Color.gray;
-//             Color32 colline = Color.white;
-//             Color32 colsolid = Color.yellow;
-// 
-//             te.SetPixel(0, 0, colline);
-//             te.SetPixel(0, 2, colline);
-//             te.SetPixel(0, 4, colline);
-//             te.SetPixel(2, 0, colsolid);
-//             te.SetPixel(2, 4, colsolid);
-//             te.SetPixel(4, 0, colline);
-//             te.SetPixel(4, 2, colline);
-//             te.SetPixel(4, 4, colline);
+            repeatU = (len.x + len.y) / 2 / SpeedRoad.RoadwayWidth;
+        }
+        uv1[0].Set(0, repeatV);
+        uv1[1].Set(0, 0);
+        Vector2 offset = Vector2.zero;
+        for (int i = 2; i <= vertex.Count - 2; i += 2)
+        {
+            var ratetop = (offset.x + lstTopPartLen[i / 2 - 1]) / len.x;
+            uv1[i].Set(repeatU * ratetop, repeatV);
+            var ratebottom = (offset.y + lstBottomPartLen[i / 2 - 1]) / len.y;
+            uv1[i + 1].Set(repeatU * ratebottom, 0);
+            offset.x += lstTopPartLen[i / 2 - 1];
+            offset.y += lstBottomPartLen[i / 2 - 1];
+        }
+        uv1[vertex.Count - 2].Set(repeatU, repeatV);
+        uv1[vertex.Count - 1].Set(repeatU, 0);
+        part.GetComponent<MeshFilter>().mesh.uv = uv1;
+    }
 
-            //             for (int i = 0; i < height; i += 2)
-            //             {
-            //                 te.SetPixel(i, 0, colline);
-            //                 te.SetPixel(i, 4, colline);
-            //             }
-            //             for (int m = 0; m < height; m++)
-            //             {
-            //                 for (int n = 1; n < width - 2; n++)
-            //                 {
-            //                     te.SetPixel(m, n, colroad);
-            //                 }
-            //             }
-            //             te.SetPixel(0, 2, Color.yellow);
-            //             te.SetPixel(height - 1, 2, Color.yellow);
-//             te.Apply();
-
-            
-            List<Vector2> uvZebraCrossing = new List<Vector2>();
-            uvZebraCrossing.Add(new Vector2(0, 1));
-            uvZebraCrossing.Add(new Vector2(0, 0));
-            float ratio = 0.4f;
-            rindex = ptarr.Length / 2 - 1 - rindex;
-            bool lindexok = false;
-            for (int i = 1; i < ptarr.Length / 2 - 1; i++)
+    public float GetRoadAngle(bool bhead, ref List<Vector3> lst)
+    {
+        float angle = 0;
+        List<Vector3> vertex = null;
+        if (bhead)
+        {
+            if (vertexZebraCrossingHead.Count > 0)
             {
-                if (i == lindex)
-                {
-                    ratio = 0.2f;
-                }
-                else if (i == rindex)
-                {
-                    ratio = 0.8f;
-                }
-                uvZebraCrossing.Add(new Vector2(ratio, 1));
-                uvZebraCrossing.Add(new Vector2(ratio, 0));
+                vertex = vertexZebraCrossingHead;
             }
-            uvZebraCrossing.Add(new Vector2(1, 1));
-            uvZebraCrossing.Add(new Vector2(1, 0));
-
-            msh.uv = uvZebraCrossing.ToArray();
-            
-        }
-         
-
-
-
-
-        msh.RecalculateNormals();
-        msh.RecalculateBounds();
-
-        obj.AddComponent(typeof(MeshRenderer));
-        MeshFilter filter = obj.AddComponent(typeof(MeshFilter)) as MeshFilter;
-        filter.mesh = msh;
-        obj.GetComponent<MeshRenderer>().material.color = Color.gray;
-        obj.name = fid.ToString();
-        obj.GetComponent<MeshRenderer>().material.mainTexture = SpeedRoad.RoadTexture2D;
-    //    byte[] bytes = te.EncodeToPNG();
-    //    File.WriteAllBytes(Application.dataPath + "/onPcSavedScreen.png", bytes);
-    }
-
-    
-
-
-    
-
-   
-
-    List<Vector3> PartHandle(ref List<Vector3> lst, ref int lindex, ref int rindex)
-    {
-        List<Vector3> result = new List<Vector3>();
-        List<float> lstPartLen = new List<float>();
-        var roadlen = SpeedRoadUtils.GetRoadLen(lst, ref lstPartLen);
-        float minimumZebraCrossingInSection = SpeedRoad.RoadZebraCrossingLength * 2; // 两端斑马线最少占用长度
-        float surplus = roadlen - minimumZebraCrossingInSection;
-        if (surplus > 0)
-        {
-            var head = SpeedRoadUtils.AddZebraCrossingHead(lstPartLen, ref lst, ref lindex);
-            result.Add(head);
-            SpeedRoadUtils.GetRoadLen(lst, ref lstPartLen);
-            var tail = SpeedRoadUtils.AddZebraCrossingTail(lstPartLen, ref lst, ref rindex);
-            result.Add(tail);
-        }
-        return result;
-    }
-
-    
-
-
-   
-
-   
-    void Widen(Vector3 start, Vector3 end, int index)
-    {
-        float rstart = SpeedRoadUtils.AngleBetween(Vector3.right, end - start);
-        Quaternion rotation = Quaternion.Euler(0, 0, -rstart);
-        Matrix4x4 m = Matrix4x4.TRS(Vector3.zero, rotation, Vector3.one);
-        Vector3 ss = m.MultiplyPoint(start);
-        Vector3 se = m.MultiplyPoint(end);
-        Matrix4x4 m2 = m.inverse;
-
-        Vector3 halfWidth = new Vector3(0, roadwidth / 2, 0);
-        ptarr[index + 0] = m2.MultiplyPoint(ss + halfWidth);
-        ptarr[index + 1] = m2.MultiplyPoint(ss - halfWidth);
-        ptarr[index + 2] = m2.MultiplyPoint(se + halfWidth);
-        ptarr[index + 3] = m2.MultiplyPoint(se - halfWidth);
-    }
-
-    void Corner(int index)
-    {
-        if (index == 0)
-        {
-            return;
-        }
-        Assert.IsTrue(index % magicnum == 0);
-
-        Geometry pt = new Geometry(wkbGeometryType.wkbPoint);
-        pt.AddPoint_2D(ptarr[index].x, ptarr[index].y);
-        Geometry dst = new Geometry(wkbGeometryType.wkbPolygon);
-        Geometry ring = new Geometry(wkbGeometryType.wkbLinearRing);
-        ring.AddPoint_2D(ptarr[index - 4].x, ptarr[index - 4].y);
-        ring.AddPoint_2D(ptarr[index - 2].x, ptarr[index - 2].y);
-        ring.AddPoint_2D(ptarr[index - 1].x, ptarr[index - 1].y);
-        ring.AddPoint_2D(ptarr[index - 3].x, ptarr[index - 3].y);
-        ring.CloseRings();
-        dst.AddGeometry(ring);
-        dst.FlattenTo2D();
-
-        Vector3 crossing = new Vector3();
-        if (pt.Within(dst))
-        {
-            bool r = SpeedRoadUtils.Calculate2LineCrossing(ptarr[index - 4], ptarr[index - 2], ptarr[index], ptarr[index + 2], ref crossing);
-            if (r)
+            else if (vertexRoad.Count > 0)
             {
-                ptarr[index] = crossing;
-                ptarr[index - 2] = crossing;
+                vertex = vertexRoad;
             }
             else
             {
                 Assert.IsFalse(true);
-                /*
-                var lst = new List<Geometry>();
-                lst.Add(dst);
-                ShpUtils.SaveShp("c:\\test_\\test_poly.shp", "test_poly", wkbGeometryType.wkbPolygon, lst);
-                lst.Clear();
-                lst.Add(pt);
-                ShpUtils.SaveShp("c:\\test_\\test_p.shp", "test_pt", wkbGeometryType.wkbPoint, lst);
-                lst.Clear();
-
-                Geometry l1 = new Geometry(wkbGeometryType.wkbLineString);
-                l1.AddPoint_2D(ptarr[index - 4].x, ptarr[index - 4].y);
-                l1.AddPoint_2D(ptarr[index - 2].x, ptarr[index - 2].y);
-
-                Geometry l2 = new Geometry(wkbGeometryType.wkbLineString);
-                l2.AddPoint_2D(ptarr[index].x, ptarr[index].y);
-                l2.AddPoint_2D(ptarr[index + 2].x, ptarr[index + 2].y);
-                lst.Add(l1);
-                lst.Add(l2);
-
-                var d1 = AngleBetween(Vector3.right, ptarr[index - 2] - ptarr[index - 4]);
-                var d2 = AngleBetween(Vector3.right, ptarr[index + 2] -  ptarr[index]);
-
-                ShpUtils.SaveShp("c:\\test_\\test_line.shp", "test_line", wkbGeometryType.wkbLineString, lst);
-                */
             }
+            var dst = vertex[2] - vertex[0];
+            angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.y, 0));
+            lst.Add(SpeedRoadUtils.SwapYZ(vertex[0]));
+            lst.Add(SpeedRoadUtils.SwapYZ(vertex[1]));
         }
         else
         {
-            bool r = SpeedRoadUtils.Calculate2LineCrossing(ptarr[index - 3], ptarr[index - 1], ptarr[index + 1], ptarr[index + 3], ref crossing);
-            if (r)
+            if (vertexZebraCrossingTail.Count > 0)
             {
-                ptarr[index - 1] = crossing;
-                ptarr[index + 1] = crossing;
+                vertex = vertexZebraCrossingTail;
+            }
+            else if (vertexRoad.Count > 0)
+            {
+                vertex = vertexRoad;
             }
             else
             {
                 Assert.IsFalse(true);
             }
+            var dst = vertex[vertex.Count - 4] - vertex[vertex.Count - 2];
+            angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.y, 0));
+            lst.Add(SpeedRoadUtils.SwapYZ(vertex[vertex.Count - 1]));
+            lst.Add(SpeedRoadUtils.SwapYZ(vertex[vertex.Count - 2]));
         }
+        return angle;
     }
 }

@@ -86,23 +86,26 @@ public class SpeedRoadCrossing
             float angle = 0;
             if (sec.StartCorssing == Fid)
             {
-                var dst = sec.PtArr[2] - sec.PtArr[0];
-                angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
+                /*var dst = sec.PtArr[2] - sec.PtArr[0];
+                angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));*/
                 List<Vector3> value = new List<Vector3>();
-                value.Add(sec.PtArr[0]);
-                value.Add(sec.PtArr[1]);
+                angle = sec.GetRoadAngle(true, ref value);
+                // value.Add(sec.PtArr[0]);
+                // value.Add(sec.PtArr[1]);
+                
                 map[angle] = value;
                 continue;
             }
             if (sec.EndCrossing == Fid)
             {
-                var dst = sec.PtArr[sec.PtArr.Length - 4] - sec.PtArr[sec.PtArr.Length - 2];
-                angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
+//                 var dst = sec.PtArr[sec.PtArr.Length - 4] - sec.PtArr[sec.PtArr.Length - 2];
+//                 angle = SpeedRoadUtils.AngleBetween(Vector3.right, new Vector3(dst.x, dst.z, 0));
                 List<Vector3> value = new List<Vector3>();
-                value.Add(sec.PtArr[sec.PtArr.Length - 1]);
-                value.Add(sec.PtArr[sec.PtArr.Length - 2]);
+                angle = sec.GetRoadAngle(false, ref value);
+                //                 value.Add(sec.PtArr[sec.PtArr.Length - 1]);
+                //                 value.Add(sec.PtArr[sec.PtArr.Length - 2]);
                 map[angle] = value;
-                continue;
+                continue;   
             }
         }
         var dicSort = from objDic in map orderby objDic.Key descending select objDic;
