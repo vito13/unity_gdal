@@ -4,9 +4,11 @@ using OSGeo.OGR;
 using UnityEngine;
 using UnityEngine.Assertions;
 using System.Linq;
+using TMPro;
 
 public class SpeedRoadCrossing
 {
+    private TextMeshPro m_textMeshPro;
     long fid = -1;
  
     public long Fid
@@ -50,7 +52,8 @@ public class SpeedRoadCrossing
         // 构建顶点数组
         var lstpts = ObtainRingPoints(fea.GetFieldAsString("sections"), secmgr);
         Geometry geo = fea.GetGeometryRef();
-        lstpts.Add(new Vector3((float)geo.GetX(0), 0, (float)geo.GetY(0)));
+        Vector3 pt = new Vector3((float)geo.GetX(0), 0, (float)geo.GetY(0));
+        lstpts.Add(pt);
 
         // 构建索引数组
         // 3 * (lstpts.Count);
@@ -76,6 +79,18 @@ public class SpeedRoadCrossing
         filter.mesh = msh;
         obj.GetComponent<MeshRenderer>().material.color = new Color(0, 1, 0, 0.5f);
         obj.name = fid.ToString();
+
+
+        GameObject fidmesh = GameObject.Instantiate(SpeedRoad.prefab);
+        fidmesh.transform.parent = obj.transform;
+        fidmesh.transform.localPosition = pt + Vector3.up * 2;
+        fidmesh.name = "fid";
+        m_textMeshPro = fidmesh.AddComponent<TextMeshPro>();
+        m_textMeshPro.fontSize = 48;
+        m_textMeshPro.color = Color.black;
+        m_textMeshPro.alignment = TextAlignmentOptions.Center;
+        m_textMeshPro.enableWordWrapping = false;
+        m_textMeshPro.SetText(obj.name);
     }
 
     List<Vector3> SortSections(List<SpeedRoadSection> lst)
@@ -116,5 +131,40 @@ public class SpeedRoadCrossing
             result.AddRange(kvp.Value);
         }
         return result;
+    }
+
+    public HashSet<long> GetNeighbors(SpeedRoadSectionMgr secmgr)
+    {
+        HashSet<long> result = new HashSet<long>();
+        foreach (var item in lstSections)
+        {
+            HashSet<long> r = item.GetCrossings();
+            result.UnionWith(r);
+        }
+        result.Remove(Fid);
+        return result;
+    }
+
+    public SpeedRoadSection GetTargetSection(long end, ref bool forward)
+    {
+        foreach (var sec in lstSections)
+        {
+            if(sec.StartCorssing == -1 || sec.EndCrossing == -1)
+            {
+                continue;
+            }
+            if (sec.StartCorssing == fid && sec.EndCrossing == end)
+            {
+                forward = true;
+                return sec;
+            }
+            else if (sec.StartCorssing == end && sec.EndCrossing == fid)
+            {
+                forward = false;
+                return sec;
+            }
+        }
+        Assert.IsTrue(false);
+        return null;
     }
 }

@@ -127,8 +127,9 @@ public class SpeedRoadSection
                 if (roadCenterlen - SpeedRoad.RoadWaitingLength * 2 > 0) // 分割双向候车区
                 {
                     GameObject waitingHead = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitinghead", ref vertexWaitingHead);
-                    SetTexture(vertexWaitingHead, waitingHead, roadtype + "wait", 1);
+                    SetTextureWait(vertexWaitingHead, waitingHead, true, e2s_ways);
                     GameObject waitingTail = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitingtail", ref vertexWaitingTail, false);
+                    SetTextureWait(vertexWaitingTail, waitingTail, false, s2e_ways);
                 }
             }
             else // 单行道
@@ -138,10 +139,12 @@ public class SpeedRoadSection
                     if (e2s_ways > 0)
                     {
                         GameObject waitingHead = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitinghead", ref vertexWaitingHead);
+                        SetTextureWait(vertexWaitingHead, waitingHead, true, e2s_ways, true);
                     }
                     else if (s2e_ways > 0)
                     {
                         GameObject waitingTail = SpeedRoadUtils.CreateMesh_Part(ref vertexbuf, feaObj, SpeedRoad.RoadWaitingLength, "waitingtail", ref vertexWaitingTail, false);
+                        SetTextureWait(vertexWaitingTail, waitingTail, false, s2e_ways, true);
                     }
                     else
                     {
@@ -156,10 +159,93 @@ public class SpeedRoadSection
         vertexRoad = vertexbuf;
     }
 
+    void SetTextureWait(List<Vector3> vertex, GameObject part, bool bhead, int ways, bool oneway = false)
+    {
+        List<float> lstTopPartLen = new List<float>();
+        List<float> lstBottomPartLen = new List<float>();
+        var len = SpeedRoadUtils.GetRoad2SideLen(vertex, ref lstTopPartLen, ref lstBottomPartLen);
+        Vector2[] uv1 = new Vector2[vertex.Count];
+
+        if (bhead)
+        {
+            uv1[0].Set(0, 1);
+            uv1[1].Set(0, 0);
+            Vector2 offset = Vector2.zero;
+            for (int i = 2; i <= vertex.Count - 2; i += 2)
+            {
+                var ratetop = (offset.x + lstTopPartLen[i / 2 - 1]) / len.x;
+                uv1[i].Set(ratetop, 1);
+                var ratebottom = (offset.y + lstBottomPartLen[i / 2 - 1]) / len.y;
+                uv1[i + 1].Set(ratebottom, 0);
+                offset.x += lstTopPartLen[i / 2 - 1];
+                offset.y += lstBottomPartLen[i / 2 - 1];
+            }
+            uv1[vertex.Count - 2].Set(1, 1);
+            uv1[vertex.Count - 1].Set(1, 0);
+        }
+        else
+        {
+            uv1[0].Set(1, 0);
+            uv1[1].Set(1, 1);
+            Vector2 offset = Vector2.zero;
+            for (int i = 2; i <= vertex.Count - 2; i += 2)
+            {
+                var ratetop = (offset.x + lstTopPartLen[i / 2 - 1]) / len.x;
+                uv1[i].Set(1 - ratetop, 0);
+                var ratebottom = (offset.y + lstBottomPartLen[i / 2 - 1]) / len.y;
+                uv1[i + 1].Set(1 - ratebottom, 1);
+                offset.x += lstTopPartLen[i / 2 - 1];
+                offset.y += lstBottomPartLen[i / 2 - 1];
+            }
+            uv1[vertex.Count - 2].Set(0, 0);
+            uv1[vertex.Count - 1].Set(0, 1);
+        }
+        part.GetComponent<MeshFilter>().mesh.uv = uv1;
+
+        if (oneway)
+        {
+            Texture2D tex = SpeedRoadTexMgr.Instance.GetTex("wait" + ways.ToString() + "ways");
+
+//             Color32[] colmain = tex.GetPixels32();
+//             var te = new Texture2D(tex.width, tex.height);
+//             te.SetPixels32(colmain);
+// 
+// 
+//             Texture2D arrowtex = SpeedRoadTexMgr.Instance.GetTex("arrowforward");
+//             Color32[] colarrow = arrowtex.GetPixels32();
+//             te.SetPixels32(colarrow);
+//             for (int m = 0; m < 128; m++)
+//             {
+//                 for (int n = 0; n < 128; n++)
+//                 {
+//                     te.SetPixel(m, n, Color.red);
+//                 }
+//             }
+//             te.Apply();
+            part.GetComponent<MeshRenderer>().material.mainTexture = tex;
+            part.GetComponent<MeshRenderer>().material.shader = Shader.Find("Transparent/Diffuse");
+        }
+        else
+        {
+            Material mat = part.GetComponent<MeshRenderer>().material;
+            var shader = Shader.Find("speedroad/waitarea");
+            mat.shader = shader;
+            var textop = SpeedRoadTexMgr.Instance.GetTex("wait" + ways.ToString() + "waystop");
+            Texture2D texbottom = SpeedRoadTexMgr.Instance.GetTex("wait" + ways.ToString() + "waysbottom");
+            mat.SetTexture("_Tex1", textop);
+            mat.SetTexture("_Tex2", texbottom);
+            var repeatU = (len.x + len.y) / 2 / SpeedRoad.RoadwayWidth;
+            mat.SetTextureScale("_Tex2", new Vector2(repeatU, 1));
+        }
+    }
+
     void SetTexture(List<Vector3> vertex, GameObject part, string texname, float repeatV)
     {
         var tex = SpeedRoadTexMgr.Instance.GetTex(texname);
         part.GetComponent<MeshRenderer>().material.mainTexture = tex;
+        part.GetComponent<MeshRenderer>().material.shader = Shader.Find("Transparent/Diffuse");
+
+
         List<float> lstTopPartLen = new List<float>();
         List<float> lstBottomPartLen = new List<float>();
         var len = SpeedRoadUtils.GetRoad2SideLen(vertex, ref lstTopPartLen, ref lstBottomPartLen);
@@ -229,5 +315,50 @@ public class SpeedRoadSection
             lst.Add(SpeedRoadUtils.SwapYZ(vertex[vertex.Count - 2]));
         }
         return angle;
+    }
+
+    public HashSet<long> GetCrossings()
+    {
+        HashSet<long> result = new HashSet<long>();
+        if (StartCorssing > -1 && s2e_ways > 0)
+        {
+            result.Add(StartCorssing);
+        }
+        if (EndCrossing > -1 && s2e_ways > 0)
+        {
+            result.Add(EndCrossing);
+        }
+        return result;
+    }
+
+    public List<Vector3> GetPath(bool forward)
+    {
+        List<Vector3> result = new List<Vector3>();
+        for (int i = 0; i < vertexZebraCrossingHead.Count; i += 2)
+        {
+            result.Add(SpeedRoadUtils.SwapYZ(vertexZebraCrossingHead[i]));
+        }
+        for (int i = 0; i < vertexWaitingHead.Count; i += 2)
+        {
+            result.Add(SpeedRoadUtils.SwapYZ(vertexWaitingHead[i]));
+        }
+        for (int i = 0; i < vertexRoad.Count; i += 2)
+        {
+            result.Add(SpeedRoadUtils.SwapYZ(vertexRoad[i]));
+        }
+        for (int i = 0; i < vertexWaitingTail.Count; i += 2)
+        {
+            result.Add(SpeedRoadUtils.SwapYZ(vertexWaitingTail[i]));
+        }
+        for (int i = 0; i < vertexZebraCrossingTail.Count; i += 2)
+        {
+            result.Add(SpeedRoadUtils.SwapYZ(vertexZebraCrossingTail[i]));
+        }
+
+        if (!forward)
+        {
+            result.Reverse();
+        }
+        return result;
     }
 }

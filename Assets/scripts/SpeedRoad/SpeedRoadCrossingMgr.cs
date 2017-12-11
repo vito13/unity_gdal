@@ -8,7 +8,7 @@ public class SpeedRoadCrossingMgr : MonoBehaviour {
     Transform parent = null;
     Dictionary<long, SpeedRoadCrossing> map = new Dictionary<long, SpeedRoadCrossing>();
 
-    public void LoadFile(string fname, Transform par, GameObject prefab, SpeedRoadSectionMgr secmgr)
+    public void LoadFile(string fname, Transform par, SpeedRoadSectionMgr secmgr)
     {
         parent = par;
         DataSource ds = Ogr.Open(fname, 0);
@@ -19,33 +19,40 @@ public class SpeedRoadCrossingMgr : MonoBehaviour {
         Feature feat;
         while ((feat = layer.GetNextFeature()) != null)
         {
-            GameObject obj = GameObject.Instantiate(prefab);
+            GameObject obj = Instantiate(SpeedRoad.prefab);
             obj.transform.parent = parent;
             SpeedRoadCrossing crossing = new SpeedRoadCrossing(ref obj, feat, secmgr);
             map[crossing.Fid] = crossing;
         }
     }
 
-    public SpeedRoadCrossing GetCrossing(int fid)
+    public SpeedRoadCrossing GetCrossing(long fid)
     {
+        if (map.ContainsKey(fid))
+        {
+            return map[fid];
+        }
         return null;
     }
-//     public void CalculateCrossingMesh(SpeedRoadSectionMgr secmgr)
-//     {
-//         foreach (var item in map)
-//         {
-//             var crossing = item.Value;
-//             var secs = crossing.Sections;
-// 
-//             List<SpeedRoadSection> lst = new List<SpeedRoadSection>();
-//             foreach (var fid in secs)
-//             {
-//                 var section = secmgr.GetSection(fid);
-//                 lst.Add(section);
-//             }
-// 
-//             var sortedlst = crossing.SortSections(lst);
-// 
-//          }
-//     }
+
+    public Dictionary<long, HashSet<long>> BuildGraph(SpeedRoadSectionMgr secmgr)
+    {
+        Dictionary<long, HashSet<long>> graph = new Dictionary<long, HashSet<long>>();
+        foreach (var item in map)
+        {
+            graph[item.Key] = item.Value.GetNeighbors(secmgr);
+        }
+        return graph;
+    }
+
+
+    public List<Vector3> GetSectionFrom2Corssing(long start, long end)
+    {
+        SpeedRoadCrossing s = GetCrossing(start);
+        bool forward = true;
+        SpeedRoadSection sec = s.GetTargetSection(end, ref forward);
+        Assert.IsNotNull(sec);
+        var path = sec.GetPath(forward);
+        return path;
+    }
 }

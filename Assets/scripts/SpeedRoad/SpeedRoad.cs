@@ -4,10 +4,12 @@ using UnityEngine;
 using OSGeo.OGR;
 using DigitalRuby.FastLineRenderer;
 
-public class SpeedRoad : MonoBehaviour {
+public class SpeedRoad : MonoBehaviour
+{
     static public GameObject prefab = null;
     SpeedRoadSectionMgr sectionMgr = new SpeedRoadSectionMgr();
     SpeedRoadCrossingMgr crossingMgr = new SpeedRoadCrossingMgr();
+    PathFinder pf = new PathFinder();
 
     [SerializeField]
     float wayWidth;
@@ -28,11 +30,18 @@ public class SpeedRoad : MonoBehaviour {
     int textureHeightPreWay; // 一条车道的纹理高度
     public static int RoadTextureHeightPreWay;
     [SerializeField]
-    Texture2D tex;
-    public static Texture2D RoadTexture2D;
+    int pathStart;
+    [SerializeField]
+    int pathEnd;
+    [SerializeField]
+    float duration;
+
+    [SerializeField]
+    TrafficSporter sporter;
 
     // Use this for initialization
-    void Start () {
+    void Start()
+    {
         Ogr.RegisterAll();
         RoadwayWidth = wayWidth;
         RoadAngleThreshold = angleThreshold;
@@ -40,35 +49,42 @@ public class SpeedRoad : MonoBehaviour {
         RoadZebraCrossings4Way = zebraCrossings4Way;
         RoadWaitingLength = waitingLength;
         RoadTextureHeightPreWay = textureHeightPreWay;
-        RoadTexture2D = tex;
+
         prefab = Resources.Load("empty") as GameObject;
         SpeedRoadTexMgr.Instance.Init();
-         /*
+        /*
 
-        Geometry pt = new Geometry(wkbGeometryType.wkbLineString);
-        pt.AddPoint_2D(0, 0);
-        pt.AddPoint_2D(10, 10);
-        pt.AddPoint_2D(0, 10);
-        print(pt.Length());
+       Geometry pt = new Geometry(wkbGeometryType.wkbLineString);
+       pt.AddPoint_2D(0, 0);
+       pt.AddPoint_2D(10, 10);
+       pt.AddPoint_2D(0, 10);
+       print(pt.Length());
 
-        Vector3 v1 = new Vector3((float)pt.GetX(0), (float)pt.GetY(0), 0);
-        Vector3 v2 = new Vector3((float)pt.GetX(1), (float)pt.GetY(1), 0);
-        float d = Vector3.Distance(v2, v1);
-        print(d);
-        var r = Vector3.Lerp(v1, v2, (d - 2) / d);
-        print(r);
- */
+       Vector3 v1 = new Vector3((float)pt.GetX(0), (float)pt.GetY(0), 0);
+       Vector3 v2 = new Vector3((float)pt.GetX(1), (float)pt.GetY(1), 0);
+       float d = Vector3.Distance(v2, v1);
+       print(d);
+       var r = Vector3.Lerp(v1, v2, (d - 2) / d);
+       print(r);
+*/
     }
-	
-	// Update is called once per frame
-	void Update () {
+
+    // Update is called once per frame
+    void Update()
+    {
         if (Input.GetKeyDown(KeyCode.A))
         {
             LoadFile();
         }
-	}
 
-    void LoadFile() {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            FindPath();
+        }
+    }
+
+    void LoadFile()
+    {
 
         {
             string fname = "E:\\test\\---\\after_sections.shp";
@@ -78,13 +94,38 @@ public class SpeedRoad : MonoBehaviour {
             sectionMgr.LoadFile(fname, sectionMgrObj.transform);
         }
 
-         {
-             string fname = "E:\\test\\---\\after_crossings.shp";
-             GameObject crossingMgrObj = Instantiate(prefab);
-             crossingMgrObj.transform.parent = transform;
-             crossingMgrObj.name = "SpeedRoadCrossingMgr";
-             crossingMgr.LoadFile(fname, crossingMgrObj.transform, prefab, sectionMgr);
-         }
+        {
+            string fname = "E:\\test\\---\\after_crossings.shp";
+            GameObject crossingMgrObj = Instantiate(prefab);
+            crossingMgrObj.transform.parent = transform;
+            crossingMgrObj.name = "SpeedRoadCrossingMgr";
+            crossingMgr.LoadFile(fname, crossingMgrObj.transform, sectionMgr);
+        }
 
+        var graph = crossingMgr.BuildGraph(sectionMgr);
+        pf.Init(graph);
+    }
+
+    void FindPath()
+    {
+        List<Vector3> path = new List<Vector3>();
+        var r = pf.FindShortestPath(pathStart, pathEnd, new List<long>());
+        print(r.Count);
+        if (r.Count > 0)
+        {
+            foreach (var item in r)
+            {
+                print(item);
+            }
+            path = pf.GetPathPoint(r, crossingMgr);
+            
+//             for (int i = 0; i < path.Count; i++)
+//             {
+//                 GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+//                 sphere.transform.parent = transform;
+//                 sphere.transform.localPosition = path[i];
+//             }
+            sporter.Init(path, duration);
+        }
     }
 }
